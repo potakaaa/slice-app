@@ -18,7 +18,9 @@ import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { TierBadge } from "@/components/TierBadge";
 import { useColors } from "@/hooks/useColors";
-import { useAppStore } from "@/store/useAppStore";
+import { useAuth } from "@/lib/auth";
+import { useCreditors, useDeleteAccount, useProfile, useUpsertProfile } from "@/lib/sliceData";
+import { supabase } from "@/lib/supabase";
 import {
   formatCurrency,
   getTotalDebt,
@@ -36,10 +38,11 @@ const GOAL_LABELS: Record<PrimaryGoal, string> = {
 
 export default function ProfileScreen() {
   const colors = useColors();
-  const profile = useAppStore((s) => s.profile);
-  const creditors = useAppStore((s) => s.creditors);
-  const updateProfile = useAppStore((s) => s.updateProfile);
-  const resetApp = useAppStore((s) => s.resetApp);
+  const { signOut } = useAuth();
+  const { profile } = useProfile();
+  const { creditors } = useCreditors();
+  const updateProfile = useUpsertProfile();
+  const deleteAccount = useDeleteAccount();
 
   const [name, setName] = useState(profile.name);
   const [email, setEmail] = useState(profile.email);
@@ -52,23 +55,27 @@ export default function ProfileScreen() {
   const totalTarget = getTotalSettlementTarget(creditors);
   const months = getMaxProgramLength(creditors);
 
-  const handleSave = () => {
-    updateProfile({ name: name.trim(), email: email.trim() });
+  const handleSave = async () => {
+    if (email.trim() && email.trim() !== profile.email) {
+      const { error } = await supabase.auth.updateUser({ email: email.trim() });
+      if (error) throw error;
+    }
+    await updateProfile.mutateAsync({ name: name.trim() });
     setHasChanges(false);
   };
 
-  const handleReset = () => {
+  const handleDeleteAccount = () => {
     Alert.alert(
-      "Reset App",
-      "This will erase all your creditors, program data, and settings. This cannot be undone.",
+      "Delete Account",
+      "This will delete your SLICE account and all Supabase-backed program data. This cannot be undone.",
       [
         { text: "Cancel", style: "cancel" },
         {
-          text: "Reset Everything",
+          text: "Delete Account",
           style: "destructive",
-          onPress: () => {
-            resetApp();
-            router.replace("/onboarding");
+          onPress: async () => {
+            await deleteAccount.mutateAsync();
+            await signOut();
           },
         },
       ]
@@ -162,7 +169,7 @@ export default function ProfileScreen() {
             </View>
 
             {hasChanges && (
-              <Button label="Save Changes" onPress={handleSave} fullWidth />
+              <Button label="Save Changes" onPress={handleSave} loading={updateProfile.isPending} fullWidth />
             )}
           </Card>
 
@@ -230,9 +237,16 @@ export default function ProfileScreen() {
 
           {/* Danger zone */}
           <Button
-            label="Reset App & Start Over"
+            label="Sign Out"
+            variant="secondary"
+            onPress={signOut}
+            fullWidth
+          />
+          <Button
+            label="Delete Account"
             variant="destructive"
-            onPress={handleReset}
+            onPress={handleDeleteAccount}
+            loading={deleteAccount.isPending}
             fullWidth
           />
         </ScrollView>

@@ -12,6 +12,7 @@ import * as Haptics from "expo-haptics";
 
 import { Button } from "@/components/Button";
 import { SliceLogo } from "@/components/SliceLogo";
+import { useCreateCreditor, useUpsertProfile } from "@/lib/sliceData";
 import { useAppStore } from "@/store/useAppStore";
 import {
   formatCurrency,
@@ -22,8 +23,10 @@ import {
 
 export default function OnboardingComplete() {
   const creditors = useAppStore((s) => s.creditors);
-  const completeOnboarding = useAppStore((s) => s.completeOnboarding);
   const profile = useAppStore((s) => s.profile);
+  const resetDraft = useAppStore((s) => s.resetApp);
+  const createCreditor = useCreateCreditor();
+  const upsertProfile = useUpsertProfile();
 
   const totalDebt = getTotalDebt(creditors);
   const totalTarget = getTotalSettlementTarget(creditors);
@@ -34,8 +37,24 @@ export default function OnboardingComplete() {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
   }, []);
 
-  const handleStart = () => {
-    completeOnboarding();
+  const handleStart = async () => {
+    await upsertProfile.mutateAsync({
+      ...profile,
+      onboardingComplete: true,
+      termsAccepted: true,
+      privacyAccepted: true,
+    });
+    for (const [index, creditor] of creditors.entries()) {
+      await createCreditor.mutateAsync({
+        name: creditor.name,
+        phone: creditor.phone,
+        balance: creditor.balance,
+        settlementPercentage: creditor.settlementPercentage,
+        monthlySavings: creditor.monthlySavings,
+        priority: index + 1,
+      });
+    }
+    resetDraft();
     router.replace("/(tabs)");
   };
 
@@ -110,6 +129,7 @@ export default function OnboardingComplete() {
               onPress={handleStart}
               style={styles.cta}
               textColor="#FF6B35"
+              loading={upsertProfile.isPending || createCreditor.isPending}
               fullWidth
             />
             <Text style={styles.disclaimer}>

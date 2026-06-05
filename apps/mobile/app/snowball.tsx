@@ -15,7 +15,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { ProgressBar } from "@/components/ProgressBar";
 import { StatusBadge } from "@/components/Badge";
 import { useColors } from "@/hooks/useColors";
-import { useAppStore } from "@/store/useAppStore";
+import { useCreditors } from "@/lib/sliceData";
 import {
   calcProgramLength,
   calcSettledAmount,
@@ -31,7 +31,7 @@ import {
 
 export default function SnowballScreen() {
   const colors = useColors();
-  const creditors = useAppStore((s) => s.creditors);
+  const { creditors } = useCreditors();
   const sorted = getSortedBySnowball(creditors);
   const topPad = Platform.OS === "web" ? 67 : 0;
   const bottomPad = Platform.OS === "web" ? 34 : 20;

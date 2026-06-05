@@ -18,7 +18,7 @@ import { CreditorCard } from "@/components/CreditorCard";
 import { EmptyState } from "@/components/EmptyState";
 import { TierBadge } from "@/components/TierBadge";
 import { useColors } from "@/hooks/useColors";
-import { useAppStore } from "@/store/useAppStore";
+import { useCreditors, useProfile } from "@/lib/sliceData";
 import {
   formatCurrency,
   getMaxProgramLength,
@@ -31,8 +31,8 @@ import {
 export default function DashboardScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const profile = useAppStore((s) => s.profile);
-  const creditors = useAppStore((s) => s.creditors);
+  const { profile } = useProfile();
+  const { creditors } = useCreditors();
 
   const totalDebt = getTotalDebt(creditors);
   const totalTarget = getTotalSettlementTarget(creditors);

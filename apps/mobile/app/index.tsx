@@ -2,24 +2,26 @@ import { router } from "expo-router";
 import React, { useEffect } from "react";
 import { ActivityIndicator, View } from "react-native";
 
-import { useAppStore } from "@/store/useAppStore";
+import { useAuth } from "@/lib/auth";
+import { useProfile } from "@/lib/sliceData";
 
 export default function Index() {
-  const hasHydrated = useAppStore((s) => s._hasHydrated);
-  const onboardingComplete = useAppStore((s) => s.profile.onboardingComplete);
+  const { loading: authLoading, session } = useAuth();
+  const { profile, isLoading: profileLoading } = useProfile();
 
   useEffect(() => {
-    useAppStore.persist.rehydrate();
-  }, []);
-
-  useEffect(() => {
-    if (!hasHydrated) return;
-    if (onboardingComplete) {
+    if (authLoading) return;
+    if (!session) {
+      router.replace("/auth");
+      return;
+    }
+    if (profileLoading) return;
+    if (profile.onboardingComplete) {
       router.replace("/(tabs)");
     } else {
       router.replace("/onboarding");
     }
-  }, [hasHydrated, onboardingComplete]);
+  }, [authLoading, profile.onboardingComplete, profileLoading, session]);
 
   return (
     <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: "#FFFFFF" }}>

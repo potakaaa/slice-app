@@ -1,4 +1,4 @@
-import { getSupabasePublicConfig, type AccessTokenProvider } from "./supabase";
+import { getCurrentAccessToken, getSupabasePublicConfig, type AccessTokenProvider } from "./supabase";
 
 export type SliceApiSuccess<T> = { ok: true; data: T };
 export type SliceApiError = { ok: false; error: { code: string; message: string } };
@@ -84,4 +84,8 @@ export class SliceApiClient {
   deleteAccount() {
     return this.call("account-delete");
   }
+}
+
+export function createSliceApiClient() {
+  return new SliceApiClient(getCurrentAccessToken);
 }

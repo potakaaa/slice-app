@@ -15,15 +15,16 @@ import {
 
 import { Button } from "@/components/Button";
 import { useColors } from "@/hooks/useColors";
-import { useAppStore } from "@/store/useAppStore";
+import { useCreateCreditor, useCreditors, useProfile } from "@/lib/sliceData";
 import { formatCurrency } from "@/utils/calculations";
 
 const SETTLEMENT_OPTIONS = [0.3, 0.4, 0.5, 0.6, 0.7];
 
 export default function AddCreditorScreen() {
   const colors = useColors();
-  const addCreditor = useAppStore((s) => s.addCreditor);
-  const profile = useAppStore((s) => s.profile);
+  const createCreditor = useCreateCreditor();
+  const { creditors } = useCreditors();
+  const { profile } = useProfile();
 
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
@@ -42,13 +43,14 @@ export default function AddCreditorScreen() {
 
   const topPad = Platform.OS === "web" ? 67 : 0;
 
-  const handleSave = () => {
-    addCreditor({
+  const handleSave = async () => {
+    await createCreditor.mutateAsync({
       name: name.trim(),
       phone: phone.trim(),
       balance: Number(balance),
       settlementPercentage: settlementPct,
       monthlySavings: Number(monthlySavings),
+      priority: creditors.length + 1,
     });
     router.back();
   };
@@ -201,6 +203,7 @@ export default function AddCreditorScreen() {
             label="Save Creditor"
             onPress={handleSave}
             disabled={!canSave}
+            loading={createCreditor.isPending}
             fullWidth
           />
         </View>

@@ -14,16 +14,16 @@ import {
 import { Card } from "@/components/Card";
 import { ProgressBar } from "@/components/ProgressBar";
 import { useColors } from "@/hooks/useColors";
-import { useAppStore } from "@/store/useAppStore";
+import { useCreditRepairTasks, useProfile, useToggleCreditRepairTask, useUpsertProfile } from "@/lib/sliceData";
 
 const CATEGORIES = ["All", "Report", "Dispute", "Settlement", "Documentation", "Monitoring", "Planning"];
 
 export default function CreditRepairScreen() {
   const colors = useColors();
-  const creditRepairTasks = useAppStore((s) => s.creditRepairTasks);
-  const toggleRepairTask = useAppStore((s) => s.toggleRepairTask);
-  const profile = useAppStore((s) => s.profile);
-  const updateProfile = useAppStore((s) => s.updateProfile);
+  const { creditRepairTasks } = useCreditRepairTasks();
+  const toggleRepairTask = useToggleCreditRepairTask();
+  const { profile } = useProfile();
+  const updateProfile = useUpsertProfile();
 
   const [selectedCat, setSelectedCat] = useState("All");
   const [scoreInput, setScoreInput] = useState(
@@ -44,7 +44,7 @@ export default function CreditRepairScreen() {
   const handleScoreUpdate = () => {
     const score = Number(scoreInput);
     if (score > 0 && score <= 850) {
-      updateProfile({ creditScore: score });
+      updateProfile.mutate({ creditScore: score });
     }
   };
 
@@ -143,7 +143,7 @@ export default function CreditRepairScreen() {
 
         {/* Tasks */}
         {filtered.map((task) => (
-          <Pressable key={task.id} onPress={() => toggleRepairTask(task.id)}>
+          <Pressable key={task.id} onPress={() => toggleRepairTask.mutate(task)}>
             <View
               style={[
                 styles.taskCard,

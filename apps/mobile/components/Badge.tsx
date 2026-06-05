@@ -38,6 +38,7 @@ export function StatusBadge({ status }: StatusBadgeProps) {
     active: { bg: colors.secondary, text: colors.primary, label: "Active" },
     negotiating: { bg: "#FFF3CD", text: "#B45309", label: "Negotiating" },
     settled: { bg: "#DCFCE7", text: "#16A34A", label: "Settled" },
+    closed: { bg: colors.muted, text: colors.mutedForeground, label: "Closed" },
   };
   const config = map[status];
   return <Badge label={config.label} color={config.bg} textColor={config.text} />;

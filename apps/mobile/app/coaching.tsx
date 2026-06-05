@@ -17,7 +17,7 @@ import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { UpgradePrompt } from "@/components/UpgradePrompt";
 import { useColors } from "@/hooks/useColors";
-import { useAppStore } from "@/store/useAppStore";
+import { useCreditors, useProfile, useRequestCoaching } from "@/lib/sliceData";
 import {
   formatCurrency,
   getTotalDebt,
@@ -37,9 +37,9 @@ const TOPICS = [
 
 export default function CoachingScreen() {
   const colors = useColors();
-  const profile = useAppStore((s) => s.profile);
-  const creditors = useAppStore((s) => s.creditors);
-  const addBooking = useAppStore((s) => s.addBooking);
+  const { profile } = useProfile();
+  const { creditors } = useCreditors();
+  const requestCoaching = useRequestCoaching();
 
   const [selectedTopic, setSelectedTopic] = useState(TOPICS[0]);
   const [notes, setNotes] = useState("");
@@ -52,8 +52,8 @@ export default function CoachingScreen() {
   const totalDebt = getTotalDebt(creditors);
   const totalTarget = getTotalSettlementTarget(creditors);
 
-  const handleSubmit = () => {
-    addBooking({
+  const handleSubmit = async () => {
+    await requestCoaching.mutateAsync({
       topic: selectedTopic,
       notes,
     });
@@ -197,6 +197,7 @@ export default function CoachingScreen() {
             <Button
               label="Request Coaching Session"
               onPress={handleSubmit}
+              loading={requestCoaching.isPending}
               fullWidth
             />
           </>

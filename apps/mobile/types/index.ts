@@ -1,6 +1,6 @@
 export type SubscriptionTier = "free" | "silver" | "gold" | "platinum";
 export type PrimaryGoal = "settle" | "repair" | "prepare" | "payoff";
-export type CreditorStatus = "active" | "negotiating" | "settled";
+export type CreditorStatus = "active" | "negotiating" | "settled" | "closed";
 export type ScriptTone = "calm" | "firm" | "hardship" | "direct";
 
 export interface UserProfile {

@@ -13,7 +13,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { TierBadge } from "@/components/TierBadge";
 import { useColors } from "@/hooks/useColors";
-import { useAppStore } from "@/store/useAppStore";
+import { useProfile } from "@/lib/sliceData";
 
 interface MenuItem {
   icon: keyof typeof Feather.glyphMap;
@@ -51,7 +51,7 @@ const MENU_GROUPS: { title: string; items: MenuItem[] }[] = [
 export default function MoreScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const profile = useAppStore((s) => s.profile);
+  const { profile } = useProfile();
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const bottomPad = 84;

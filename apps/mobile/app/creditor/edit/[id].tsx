@@ -16,7 +16,7 @@ import {
 
 import { Button } from "@/components/Button";
 import { useColors } from "@/hooks/useColors";
-import { useAppStore } from "@/store/useAppStore";
+import { useCreditors, useDeleteCreditor, useUpdateCreditor } from "@/lib/sliceData";
 import { formatCurrency, calcSettledAmount, calcProgramLength } from "@/utils/calculations";
 
 const SETTLEMENT_OPTIONS = [0.3, 0.4, 0.5, 0.6, 0.7];
@@ -24,9 +24,9 @@ const SETTLEMENT_OPTIONS = [0.3, 0.4, 0.5, 0.6, 0.7];
 export default function EditCreditorScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const colors = useColors();
-  const creditors = useAppStore((s) => s.creditors);
-  const updateCreditor = useAppStore((s) => s.updateCreditor);
-  const deleteCreditor = useAppStore((s) => s.deleteCreditor);
+  const { creditors } = useCreditors();
+  const updateCreditor = useUpdateCreditor();
+  const deleteCreditor = useDeleteCreditor();
 
   const creditor = creditors.find((c) => c.id === id);
   const topPad = Platform.OS === "web" ? 67 : 0;
@@ -51,14 +51,14 @@ export default function EditCreditorScreen() {
   const settled = calcSettledAmount(Number(balance), settlementPct);
   const months = calcProgramLength(settled, Number(monthlySavings));
 
-  const handleSave = () => {
-    updateCreditor(creditor.id, {
+  const handleSave = async () => {
+    await updateCreditor.mutateAsync({ id: creditor.id, updates: {
       name: name.trim(),
       phone: phone.trim(),
       balance: Number(balance),
       settlementPercentage: settlementPct,
       monthlySavings: Number(monthlySavings),
-    });
+    } });
     router.back();
   };
 
@@ -71,8 +71,8 @@ export default function EditCreditorScreen() {
         {
           text: "Delete",
           style: "destructive",
-          onPress: () => {
-            deleteCreditor(creditor.id);
+          onPress: async () => {
+            await deleteCreditor.mutateAsync(creditor.id);
             router.dismissAll();
           },
         },
@@ -205,8 +205,8 @@ export default function EditCreditorScreen() {
         </ScrollView>
 
         <View style={[styles.footer, { borderTopColor: colors.border, paddingBottom: Platform.OS === "web" ? 34 : 16 }]}>
-          <Button label="Save Changes" onPress={handleSave} disabled={!canSave} fullWidth />
-          <Button label="Delete Creditor" variant="destructive" onPress={handleDelete} fullWidth />
+          <Button label="Save Changes" onPress={handleSave} disabled={!canSave} loading={updateCreditor.isPending} fullWidth />
+          <Button label="Delete Creditor" variant="destructive" onPress={handleDelete} loading={deleteCreditor.isPending} fullWidth />
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>

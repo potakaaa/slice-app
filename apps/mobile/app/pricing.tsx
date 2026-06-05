@@ -10,11 +10,10 @@ import {
   View,
   Alert,
 } from "react-native";
-import * as Haptics from "expo-haptics";
 
 import { Card } from "@/components/Card";
 import { useColors } from "@/hooks/useColors";
-import { useAppStore } from "@/store/useAppStore";
+import { useProfile } from "@/lib/sliceData";
 import type { SubscriptionTier } from "@/types";
 
 interface PlanConfig {
@@ -95,8 +94,7 @@ const PLANS: PlanConfig[] = [
 
 export default function PricingScreen() {
   const colors = useColors();
-  const profile = useAppStore((s) => s.profile);
-  const upgradeTier = useAppStore((s) => s.upgradeTier);
+  const { profile } = useProfile();
 
   const topPad = Platform.OS === "web" ? 67 : 0;
   const bottomPad = Platform.OS === "web" ? 34 : 20;
@@ -105,16 +103,9 @@ export default function PricingScreen() {
     if (plan.tier === profile.tier) return;
     Alert.alert(
       `Upgrade to ${plan.name}`,
-      `${plan.name} plan is ${plan.price}/${plan.period}. In-app purchases will be available soon via RevenueCat. For now, your plan has been updated for demo purposes.`,
+      `${plan.name} plan is ${plan.price}/${plan.period}. In-app purchases are managed by RevenueCat and will sync to your SLICE account when enabled.`,
       [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Upgrade (Demo)",
-          onPress: () => {
-            upgradeTier(plan.tier);
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-          },
-        },
+        { text: "OK", style: "default" },
       ]
     );
   };

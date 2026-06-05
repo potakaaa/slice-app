@@ -14,7 +14,7 @@ import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { UpgradePrompt } from "@/components/UpgradePrompt";
 import { useColors } from "@/hooks/useColors";
-import { useAppStore } from "@/store/useAppStore";
+import { useCreditors, useGenerateAiStrategy, useProfile } from "@/lib/sliceData";
 import {
   formatCurrency,
   formatPct,
@@ -42,8 +42,9 @@ const WHAT_NOT_TO_SAY = [
 export default function AIStrategyScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const colors = useColors();
-  const creditors = useAppStore((s) => s.creditors);
-  const profile = useAppStore((s) => s.profile);
+  const { creditors } = useCreditors();
+  const { profile } = useProfile();
+  const generateStrategy = useGenerateAiStrategy();
 
   const creditor = creditors.find((c) => c.id === id) ?? creditors[0];
   const isSilver = profile.tier !== "free";
@@ -100,6 +101,17 @@ export default function AIStrategyScreen() {
                 Starting at {formatPct(aiOffer)} gives you room to negotiate up to your target of{" "}
                 {formatPct(creditor.settlementPercentage)}. Creditors expect counter-offers.
               </Text>
+              <Button
+                label={generateStrategy.data ? "Server Strategy Saved" : "Generate Server AI Strategy"}
+                onPress={() => generateStrategy.mutate(creditor.id)}
+                loading={generateStrategy.isPending}
+                fullWidth
+              />
+              {generateStrategy.error instanceof Error && (
+                <Text style={[styles.errorText, { color: colors.destructive }]}>
+                  {generateStrategy.error.message}
+                </Text>
+              )}
             </Card>
 
             {/* Strategy steps */}
@@ -222,6 +234,7 @@ const styles = StyleSheet.create({
   offerAmount: { fontSize: 36, fontFamily: "Inter_700Bold" },
   offerPct: { fontSize: 14, fontFamily: "Inter_500Medium" },
   offerReason: { fontSize: 13, fontFamily: "Inter_400Regular", lineHeight: 20, marginTop: 4 },
+  errorText: { fontSize: 12, fontFamily: "Inter_500Medium", marginTop: 6 },
   sectionTitle: { fontSize: 15, fontFamily: "Inter_700Bold", marginBottom: 12 },
   steps: { gap: 16 },
   step: { flexDirection: "row", gap: 12 },

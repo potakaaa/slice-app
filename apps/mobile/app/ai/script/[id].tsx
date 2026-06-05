@@ -15,7 +15,7 @@ import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { UpgradePrompt } from "@/components/UpgradePrompt";
 import { useColors } from "@/hooks/useColors";
-import { useAppStore } from "@/store/useAppStore";
+import { useCreditors, useGenerateAiScript, useProfile } from "@/lib/sliceData";
 import { formatCurrency, formatPct, getAISuggestedOffer } from "@/utils/calculations";
 import type { ScriptTone } from "@/types";
 
@@ -57,8 +57,9 @@ function buildScript(
 export default function AIScriptScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const colors = useColors();
-  const creditors = useAppStore((s) => s.creditors);
-  const profile = useAppStore((s) => s.profile);
+  const { creditors } = useCreditors();
+  const { profile } = useProfile();
+  const generateScript = useGenerateAiScript();
 
   const creditor = creditors.find((c) => c.id === id) ?? creditors[0];
   const [tone, setTone] = useState<ScriptTone>("calm");
@@ -191,6 +192,17 @@ export default function AIScriptScreen() {
                   Read this script while on the phone. Fill in [brackets] with your actual info.
                 </Text>
               </View>
+              <Button
+                label={generateScript.data ? "Server Script Saved" : "Generate Server AI Script"}
+                onPress={() => generateScript.mutate({ creditorId: creditor.id, tone })}
+                loading={generateScript.isPending}
+                fullWidth
+              />
+              {generateScript.error instanceof Error && (
+                <Text style={[styles.errorText, { color: colors.destructive }]}>
+                  {generateScript.error.message}
+                </Text>
+              )}
             </Card>
           </>
         )}
@@ -255,6 +267,7 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
   },
   phoneHintText: { fontSize: 12, fontFamily: "Inter_400Regular", flex: 1, lineHeight: 18 },
+  errorText: { fontSize: 12, fontFamily: "Inter_500Medium" },
   disclaimer: {
     fontSize: 11,
     fontFamily: "Inter_400Regular",

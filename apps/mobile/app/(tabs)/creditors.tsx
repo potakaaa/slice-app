@@ -15,13 +15,13 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { CreditorCard } from "@/components/CreditorCard";
 import { EmptyState } from "@/components/EmptyState";
 import { useColors } from "@/hooks/useColors";
-import { useAppStore } from "@/store/useAppStore";
+import { useCreditors } from "@/lib/sliceData";
 import { getSortedBySnowball, getTotalDebt, formatCurrency } from "@/utils/calculations";
 
 export default function CreditorsScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const creditors = useAppStore((s) => s.creditors);
+  const { creditors } = useCreditors();
   const [search, setSearch] = useState("");
 
   const sorted = getSortedBySnowball(creditors);

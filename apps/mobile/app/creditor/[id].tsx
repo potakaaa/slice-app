@@ -18,7 +18,7 @@ import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { ProgressBar } from "@/components/ProgressBar";
 import { useColors } from "@/hooks/useColors";
-import { useAppStore } from "@/store/useAppStore";
+import { useCreditors, useDeleteCreditor, useUpdateCreditor } from "@/lib/sliceData";
 import {
   calcProgramLength,
   calcSettledAmount,
@@ -39,9 +39,9 @@ const STATUS_OPTIONS: { value: CreditorStatus; label: string }[] = [
 export default function CreditorDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const colors = useColors();
-  const creditors = useAppStore((s) => s.creditors);
-  const updateCreditor = useAppStore((s) => s.updateCreditor);
-  const deleteCreditor = useAppStore((s) => s.deleteCreditor);
+  const { creditors } = useCreditors();
+  const updateCreditor = useUpdateCreditor();
+  const deleteCreditor = useDeleteCreditor();
 
   const creditor = creditors.find((c) => c.id === id);
   const [notes, setNotes] = useState(creditor?.notes ?? "");
@@ -72,8 +72,8 @@ export default function CreditorDetailScreen() {
         {
           text: "Delete",
           style: "destructive",
-          onPress: () => {
-            deleteCreditor(creditor.id);
+          onPress: async () => {
+            await deleteCreditor.mutateAsync(creditor.id);
             router.back();
           },
         },
@@ -83,7 +83,7 @@ export default function CreditorDetailScreen() {
 
   const handleNotesChange = (text: string) => {
     setNotes(text);
-    updateCreditor(creditor.id, { notes: text });
+    updateCreditor.mutate({ id: creditor.id, updates: { notes: text } });
   };
 
   const bottomPad = Platform.OS === "web" ? 34 : 16;
@@ -125,7 +125,7 @@ export default function CreditorDetailScreen() {
             {STATUS_OPTIONS.map((s) => (
               <Pressable
                 key={s.value}
-                onPress={() => updateCreditor(creditor.id, { status: s.value })}
+                onPress={() => updateCreditor.mutate({ id: creditor.id, updates: { status: s.value } })}
                 style={[
                   styles.statusBtn,
                   {
@@ -196,7 +196,7 @@ export default function CreditorDetailScreen() {
             {SETTLEMENT_OPTIONS.map((pct) => (
               <Pressable
                 key={pct}
-                onPress={() => updateCreditor(creditor.id, { settlementPercentage: pct })}
+                onPress={() => updateCreditor.mutate({ id: creditor.id, updates: { settlementPercentage: pct } })}
                 style={[
                   styles.pctBtn,
                   {

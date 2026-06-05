@@ -14,7 +14,7 @@ import { Card } from "@/components/Card";
 import { EmptyState } from "@/components/EmptyState";
 import { ProgressBar } from "@/components/ProgressBar";
 import { useColors } from "@/hooks/useColors";
-import { useAppStore } from "@/store/useAppStore";
+import { useCreditors, useUpdateCreditor } from "@/lib/sliceData";
 import {
   calcProgramLength,
   calcSettledAmount,
@@ -32,8 +32,8 @@ const SETTLEMENT_OPTIONS = [0.3, 0.4, 0.5, 0.6, 0.7];
 export default function ProgramScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const creditors = useAppStore((s) => s.creditors);
-  const updateCreditor = useAppStore((s) => s.updateCreditor);
+  const { creditors } = useCreditors();
+  const updateCreditor = useUpdateCreditor();
 
   const sorted = getSortedBySnowball(creditors);
   const totalDebt = getTotalDebt(creditors);
@@ -123,7 +123,7 @@ export default function ProgramScreen() {
                     {SETTLEMENT_OPTIONS.map((pct) => (
                       <Pressable
                         key={pct}
-                        onPress={() => updateCreditor(creditor.id, { settlementPercentage: pct })}
+                        onPress={() => updateCreditor.mutate({ id: creditor.id, updates: { settlementPercentage: pct } })}
                         style={[
                           styles.pctBtn,
                           {
@@ -160,8 +160,9 @@ export default function ProgramScreen() {
                   <View style={styles.savingsBtns}>
                     <Pressable
                       onPress={() =>
-                        updateCreditor(creditor.id, {
-                          monthlySavings: Math.max(50, creditor.monthlySavings - 50),
+                        updateCreditor.mutate({
+                          id: creditor.id,
+                          updates: { monthlySavings: Math.max(50, creditor.monthlySavings - 50) },
                         })
                       }
                       style={[styles.adjustBtn, { backgroundColor: colors.muted }]}
@@ -170,8 +171,9 @@ export default function ProgramScreen() {
                     </Pressable>
                     <Pressable
                       onPress={() =>
-                        updateCreditor(creditor.id, {
-                          monthlySavings: creditor.monthlySavings + 50,
+                        updateCreditor.mutate({
+                          id: creditor.id,
+                          updates: { monthlySavings: creditor.monthlySavings + 50 },
                         })
                       }
                       style={[styles.adjustBtn, { backgroundColor: colors.muted }]}

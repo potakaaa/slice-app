@@ -12,7 +12,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useColors } from "@/hooks/useColors";
-import { useAppStore } from "@/store/useAppStore";
+import { useCreditors, useProfile } from "@/lib/sliceData";
 
 interface ToolItem {
   icon: keyof typeof Feather.glyphMap;
@@ -60,12 +60,12 @@ const TOOLS: ToolItem[] = [
 export default function ToolsScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const tier = useAppStore((s) => s.profile.tier);
-  const creditors = useAppStore((s) => s.creditors);
+  const { profile } = useProfile();
+  const { creditors } = useCreditors();
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const bottomPad = 84;
-  const isLocked = tier === "free";
+  const isLocked = profile.tier === "free";
 
   const handlePress = (tool: ToolItem) => {
     if (tool.premium && isLocked) {

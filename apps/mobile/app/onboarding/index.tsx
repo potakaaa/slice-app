@@ -59,7 +59,7 @@ export default function OnboardingWelcome() {
               fullWidth
             />
             <Text style={styles.disclaimer}>
-              No credit card required. Your data stays on your device.
+              No credit card required. Your program is stored securely in your SLICE account.
             </Text>
           </View>
         </View>
