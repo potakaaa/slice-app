@@ -1,0 +1,1 @@
+- [SLICE App Architecture](slice-architecture.md) — Zustand + AsyncStorage persist, Expo Router, no backend, all local state

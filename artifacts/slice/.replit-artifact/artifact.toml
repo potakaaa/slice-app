@@ -1,0 +1,27 @@
+kind = "mobile"
+previewPath = "/"
+title = "SLICE — Debt Resolution App"
+version = "1.0.0"
+id = "artifacts/slice"
+router = "expo-domain"
+
+[[integratedSkills]]
+name = "expo"
+version = "1.0.0"
+
+[[services]]
+ensurePreviewReachable = "/status"
+name = "expo"
+paths = [ "/" ]
+localPort = 25599
+
+[services.development]
+run = "pnpm --filter @workspace/slice run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/slice", "run", "build" ]
+run = [ "pnpm", "--filter", "@workspace/slice", "run", "serve" ]
+
+[services.env]
+PORT = "25599"
+BASE_PATH = "/"
