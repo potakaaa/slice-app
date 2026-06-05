@@ -1,0 +1,4 @@
+
+> @workspace/scripts@0.0.0 typecheck /Volumes/Extreme_SSD/Projects/React Native/slice-app/scripts
+> tsc -p tsconfig.json --noEmit
+

@@ -1,0 +1,23 @@
+
+> @workspace/mockup-sandbox@2.0.0 typecheck /Volumes/Extreme_SSD/Projects/React Native/slice-app/apps/web-sandbox
+> tsc -p tsconfig.json --noEmit
+
+src/components/ui/calendar.tsx(132,15): error TS2322: Type 'import("/Volumes/Extreme_SSD/Projects/React Native/slice-app/node_modules/.pnpm/@types+react@19.1.17/node_modules/@types/react/index").Ref<HTMLDivElement> | undefined' is not assignable to type 'React.Ref<HTMLDivElement> | undefined'.
+  Type '(instance: HTMLDivElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type 'Ref<HTMLDivElement> | undefined'.
+    Type '(instance: HTMLDivElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type '(instance: HTMLDivElement | null) => void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+      Type 'void | (() => VoidOrUndefinedOnly)' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+        Type '() => VoidOrUndefinedOnly' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'.
+          Type '() => VoidOrUndefinedOnly' is not assignable to type '() => VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+            Type 'VoidOrUndefinedOnly' is not assignable to type 'VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+              Type '{ [UNDEFINED_VOID_ONLY]: never; }' is not assignable to type 'VoidOrUndefinedOnly'.
+src/components/ui/spinner.tsx(7,6): error TS2322: Type '{ suppressHydrationWarning?: boolean | undefined; color?: string | undefined; height?: string | number | undefined; id?: string | undefined; lang?: string | undefined; max?: string | number | undefined; ... 481 more ...; className: string; }' is not assignable to type 'RefAttributes<SVGSVGElement>'.
+  Types of property 'ref' are incompatible.
+    Type 'React.Ref<SVGSVGElement> | undefined' is not assignable to type 'import("/Volumes/Extreme_SSD/Projects/React Native/slice-app/node_modules/.pnpm/@types+react@19.1.17/node_modules/@types/react/index").Ref<SVGSVGElement> | undefined'.
+      Type '(instance: SVGSVGElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type 'Ref<SVGSVGElement> | undefined'.
+        Type '(instance: SVGSVGElement | null) => void | (() => VoidOrUndefinedOnly)' is not assignable to type '(instance: SVGSVGElement | null) => void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+          Type 'void | (() => VoidOrUndefinedOnly)' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'. Two different types with this name exist, but they are unrelated.
+            Type '() => VoidOrUndefinedOnly' is not assignable to type 'void | (() => VoidOrUndefinedOnly)'.
+              Type '() => VoidOrUndefinedOnly' is not assignable to type '() => VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                Type 'VoidOrUndefinedOnly' is not assignable to type 'VoidOrUndefinedOnly'. Two different types with this name exist, but they are unrelated.
+                  Type '{ [UNDEFINED_VOID_ONLY]: never; }' is not assignable to type 'VoidOrUndefinedOnly'.
+ ELIFECYCLE  Command failed with exit code 2.

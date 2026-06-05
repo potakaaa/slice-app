@@ -1,0 +1,5 @@
+
+> @workspace/slice@0.0.0 typecheck /Volumes/Extreme_SSD/Projects/React Native/slice-app/apps/mobile
+> tsc -p tsconfig.json --noEmit
+
+ ELIFECYCLE  Command failed.
