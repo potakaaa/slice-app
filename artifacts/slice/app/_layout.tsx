@@ -45,6 +45,8 @@ function RootLayoutNav() {
       <Stack.Screen name="pricing" options={{ title: "Upgrade Plan" }} />
       <Stack.Screen name="profile" options={{ title: "Profile & Settings" }} />
       <Stack.Screen name="legal" options={{ title: "Legal Disclaimer" }} />
+      <Stack.Screen name="privacy-policy" options={{ title: "Privacy Policy" }} />
+      <Stack.Screen name="terms" options={{ title: "Terms and Conditions" }} />
     </Stack>
   );
 }

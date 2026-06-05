@@ -41,7 +41,9 @@ const MENU_GROUPS: { title: string; items: MenuItem[] }[] = [
   {
     title: "Legal",
     items: [
-      { icon: "file-text", label: "Legal Disclaimer", route: "/legal", desc: "Terms and disclosures" },
+      { icon: "file-text", label: "Legal Disclaimer", route: "/legal", desc: "Important disclosures about SLICE" },
+      { icon: "lock", label: "Privacy Policy", route: "/privacy-policy", desc: "How we collect and protect your data" },
+      { icon: "clipboard", label: "Terms and Conditions", route: "/terms", desc: "Your rights and responsibilities" },
     ],
   },
 ];

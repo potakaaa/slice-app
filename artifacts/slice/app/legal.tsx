@@ -1,7 +1,9 @@
 import { Feather } from "@expo/vector-icons";
+import { router } from "expo-router";
 import React from "react";
 import {
   Platform,
+  Pressable,
   SafeAreaView,
   ScrollView,
   StyleSheet,
@@ -104,8 +106,27 @@ export default function LegalScreen() {
           </Text>
         </Card>
 
+        <View style={styles.docsRow}>
+          <Pressable
+            onPress={() => router.push("/privacy-policy")}
+            style={[styles.docLink, { borderColor: colors.border, backgroundColor: colors.card }]}
+          >
+            <Feather name="lock" size={16} color={colors.primary} />
+            <Text style={[styles.docLinkText, { color: colors.foreground }]}>Privacy Policy</Text>
+            <Feather name="chevron-right" size={14} color={colors.mutedForeground} />
+          </Pressable>
+          <Pressable
+            onPress={() => router.push("/terms")}
+            style={[styles.docLink, { borderColor: colors.border, backgroundColor: colors.card }]}
+          >
+            <Feather name="clipboard" size={16} color={colors.primary} />
+            <Text style={[styles.docLinkText, { color: colors.foreground }]}>Terms and Conditions</Text>
+            <Feather name="chevron-right" size={14} color={colors.mutedForeground} />
+          </Pressable>
+        </View>
+
         <Text style={[styles.version, { color: colors.mutedForeground }]}>
-          SLICE App v1.0.0 · Last updated June 2025
+          SLICE App v1.0.0 · Last updated June 2026
         </Text>
       </ScrollView>
     </SafeAreaView>
@@ -145,10 +166,21 @@ const styles = StyleSheet.create({
     color: "rgba(255,255,255,0.9)",
     lineHeight: 22,
   },
+  docsRow: { gap: 10 },
+  docLink: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    padding: 14,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
+  docLinkText: { flex: 1, fontSize: 14, fontFamily: "Inter_600SemiBold" },
   version: {
     textAlign: "center",
     fontSize: 12,
     fontFamily: "Inter_400Regular",
     paddingBottom: 8,
+    marginTop: 4,
   },
 });
