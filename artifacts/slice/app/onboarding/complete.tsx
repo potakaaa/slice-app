@@ -55,7 +55,9 @@ export default function OnboardingComplete() {
             <SliceLogo size={80} />
             <Text style={styles.congrats}>Your Program Is Ready!</Text>
             <Text style={styles.name}>
-              {profile.name ? `Great work, ${profile.name.split(" ")[0]}!` : "Great work!"}
+              {profile.name
+                ? `Great work, ${profile.name.split(" ")[0].charAt(0).toUpperCase() + profile.name.split(" ")[0].slice(1)}!`
+                : "Great work!"}
             </Text>
           </View>
 
@@ -107,6 +109,7 @@ export default function OnboardingComplete() {
               label="Start My Program"
               onPress={handleStart}
               style={styles.cta}
+              textColor="#FF6B35"
               fullWidth
             />
             <Text style={styles.disclaimer}>
