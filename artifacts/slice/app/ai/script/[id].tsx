@@ -57,10 +57,8 @@ function buildScript(
 export default function AIScriptScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const colors = useColors();
-  const { creditors, profile } = useAppStore((s) => ({
-    creditors: s.creditors,
-    profile: s.profile,
-  }));
+  const creditors = useAppStore((s) => s.creditors);
+  const profile = useAppStore((s) => s.profile);
 
   const creditor = creditors.find((c) => c.id === id) ?? creditors[0];
   const [tone, setTone] = useState<ScriptTone>("calm");

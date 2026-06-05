@@ -192,6 +192,7 @@ export const useAppStore = create<AppStore>()(
     {
       name: "slice-app-storage",
       storage: createJSONStorage(() => AsyncStorage),
+      skipHydration: true,
       onRehydrateStorage: () => (state) => {
         state?.setHasHydrated(true);
       },

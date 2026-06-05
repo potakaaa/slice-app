@@ -9,6 +9,10 @@ export default function Index() {
   const onboardingComplete = useAppStore((s) => s.profile.onboardingComplete);
 
   useEffect(() => {
+    useAppStore.persist.rehydrate();
+  }, []);
+
+  useEffect(() => {
     if (!hasHydrated) return;
     if (onboardingComplete) {
       router.replace("/(tabs)");

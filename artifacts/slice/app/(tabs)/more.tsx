@@ -49,7 +49,7 @@ const MENU_GROUPS: { title: string; items: MenuItem[] }[] = [
 export default function MoreScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { profile } = useAppStore((s) => ({ profile: s.profile }));
+  const profile = useAppStore((s) => s.profile);
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const bottomPad = 84;

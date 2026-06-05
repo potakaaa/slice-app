@@ -39,11 +39,9 @@ const STATUS_OPTIONS: { value: CreditorStatus; label: string }[] = [
 export default function CreditorDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const colors = useColors();
-  const { creditors, updateCreditor, deleteCreditor } = useAppStore((s) => ({
-    creditors: s.creditors,
-    updateCreditor: s.updateCreditor,
-    deleteCreditor: s.deleteCreditor,
-  }));
+  const creditors = useAppStore((s) => s.creditors);
+  const updateCreditor = useAppStore((s) => s.updateCreditor);
+  const deleteCreditor = useAppStore((s) => s.deleteCreditor);
 
   const creditor = creditors.find((c) => c.id === id);
   const [notes, setNotes] = useState(creditor?.notes ?? "");

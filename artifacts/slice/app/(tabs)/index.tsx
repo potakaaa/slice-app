@@ -31,10 +31,8 @@ import {
 export default function DashboardScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { profile, creditors } = useAppStore((s) => ({
-    profile: s.profile,
-    creditors: s.creditors,
-  }));
+  const profile = useAppStore((s) => s.profile);
+  const creditors = useAppStore((s) => s.creditors);
 
   const totalDebt = getTotalDebt(creditors);
   const totalTarget = getTotalSettlementTarget(creditors);

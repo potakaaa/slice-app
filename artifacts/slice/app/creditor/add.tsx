@@ -22,10 +22,8 @@ const SETTLEMENT_OPTIONS = [0.3, 0.4, 0.5, 0.6, 0.7];
 
 export default function AddCreditorScreen() {
   const colors = useColors();
-  const { addCreditor, profile } = useAppStore((s) => ({
-    addCreditor: s.addCreditor,
-    profile: s.profile,
-  }));
+  const addCreditor = useAppStore((s) => s.addCreditor);
+  const profile = useAppStore((s) => s.profile);
 
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");

@@ -20,12 +20,10 @@ const CATEGORIES = ["All", "Report", "Dispute", "Settlement", "Documentation", "
 
 export default function CreditRepairScreen() {
   const colors = useColors();
-  const { creditRepairTasks, toggleRepairTask, profile, updateProfile } = useAppStore((s) => ({
-    creditRepairTasks: s.creditRepairTasks,
-    toggleRepairTask: s.toggleRepairTask,
-    profile: s.profile,
-    updateProfile: s.updateProfile,
-  }));
+  const creditRepairTasks = useAppStore((s) => s.creditRepairTasks);
+  const toggleRepairTask = useAppStore((s) => s.toggleRepairTask);
+  const profile = useAppStore((s) => s.profile);
+  const updateProfile = useAppStore((s) => s.updateProfile);
 
   const [selectedCat, setSelectedCat] = useState("All");
   const [scoreInput, setScoreInput] = useState(

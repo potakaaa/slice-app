@@ -29,10 +29,8 @@ interface TempCreditor {
 
 export default function OnboardingStep2() {
   const colors = useColors();
-  const { profile, addCreditor } = useAppStore((s) => ({
-    profile: s.profile,
-    addCreditor: s.addCreditor,
-  }));
+  const profile = useAppStore((s) => s.profile);
+  const addCreditor = useAppStore((s) => s.addCreditor);
 
   const [creditors, setCreditors] = useState<TempCreditor[]>([
     { id: generateId(), name: "", phone: "", balance: "" },

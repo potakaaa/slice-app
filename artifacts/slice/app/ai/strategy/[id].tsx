@@ -42,10 +42,8 @@ const WHAT_NOT_TO_SAY = [
 export default function AIStrategyScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const colors = useColors();
-  const { creditors, profile } = useAppStore((s) => ({
-    creditors: s.creditors,
-    profile: s.profile,
-  }));
+  const creditors = useAppStore((s) => s.creditors);
+  const profile = useAppStore((s) => s.profile);
 
   const creditor = creditors.find((c) => c.id === id) ?? creditors[0];
   const isSilver = profile.tier !== "free";

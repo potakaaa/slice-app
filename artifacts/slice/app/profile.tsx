@@ -36,12 +36,10 @@ const GOAL_LABELS: Record<PrimaryGoal, string> = {
 
 export default function ProfileScreen() {
   const colors = useColors();
-  const { profile, creditors, updateProfile, resetApp } = useAppStore((s) => ({
-    profile: s.profile,
-    creditors: s.creditors,
-    updateProfile: s.updateProfile,
-    resetApp: s.resetApp,
-  }));
+  const profile = useAppStore((s) => s.profile);
+  const creditors = useAppStore((s) => s.creditors);
+  const updateProfile = useAppStore((s) => s.updateProfile);
+  const resetApp = useAppStore((s) => s.resetApp);
 
   const [name, setName] = useState(profile.name);
   const [email, setEmail] = useState(profile.email);

@@ -21,11 +21,9 @@ import {
 } from "@/utils/calculations";
 
 export default function OnboardingComplete() {
-  const { creditors, completeOnboarding, profile } = useAppStore((s) => ({
-    creditors: s.creditors,
-    completeOnboarding: s.completeOnboarding,
-    profile: s.profile,
-  }));
+  const creditors = useAppStore((s) => s.creditors);
+  const completeOnboarding = useAppStore((s) => s.completeOnboarding);
+  const profile = useAppStore((s) => s.profile);
 
   const totalDebt = getTotalDebt(creditors);
   const totalTarget = getTotalSettlementTarget(creditors);

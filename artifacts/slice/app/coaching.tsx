@@ -37,11 +37,9 @@ const TOPICS = [
 
 export default function CoachingScreen() {
   const colors = useColors();
-  const { profile, creditors, addBooking } = useAppStore((s) => ({
-    profile: s.profile,
-    creditors: s.creditors,
-    addBooking: s.addBooking,
-  }));
+  const profile = useAppStore((s) => s.profile);
+  const creditors = useAppStore((s) => s.creditors);
+  const addBooking = useAppStore((s) => s.addBooking);
 
   const [selectedTopic, setSelectedTopic] = useState(TOPICS[0]);
   const [notes, setNotes] = useState("");

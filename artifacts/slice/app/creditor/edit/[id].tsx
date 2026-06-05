@@ -24,11 +24,9 @@ const SETTLEMENT_OPTIONS = [0.3, 0.4, 0.5, 0.6, 0.7];
 export default function EditCreditorScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const colors = useColors();
-  const { creditors, updateCreditor, deleteCreditor } = useAppStore((s) => ({
-    creditors: s.creditors,
-    updateCreditor: s.updateCreditor,
-    deleteCreditor: s.deleteCreditor,
-  }));
+  const creditors = useAppStore((s) => s.creditors);
+  const updateCreditor = useAppStore((s) => s.updateCreditor);
+  const deleteCreditor = useAppStore((s) => s.deleteCreditor);
 
   const creditor = creditors.find((c) => c.id === id);
   const topPad = Platform.OS === "web" ? 67 : 0;

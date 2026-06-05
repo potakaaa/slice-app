@@ -1,1 +1,2 @@
 - [SLICE App Architecture](slice-architecture.md) — Zustand + AsyncStorage persist, Expo Router, no backend, all local state
+- [Zustand v5 + persist crash fixes](zustand-v5-persist-crash.md) — object selectors and sync hydration both cause infinite loops in Expo StrictMode; use individual selectors + skipHydration.

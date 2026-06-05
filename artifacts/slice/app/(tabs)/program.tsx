@@ -32,10 +32,8 @@ const SETTLEMENT_OPTIONS = [0.3, 0.4, 0.5, 0.6, 0.7];
 export default function ProgramScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { creditors, updateCreditor } = useAppStore((s) => ({
-    creditors: s.creditors,
-    updateCreditor: s.updateCreditor,
-  }));
+  const creditors = useAppStore((s) => s.creditors);
+  const updateCreditor = useAppStore((s) => s.updateCreditor);
 
   const sorted = getSortedBySnowball(creditors);
   const totalDebt = getTotalDebt(creditors);

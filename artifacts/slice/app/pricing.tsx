@@ -95,10 +95,8 @@ const PLANS: PlanConfig[] = [
 
 export default function PricingScreen() {
   const colors = useColors();
-  const { profile, upgradeTier } = useAppStore((s) => ({
-    profile: s.profile,
-    upgradeTier: s.upgradeTier,
-  }));
+  const profile = useAppStore((s) => s.profile);
+  const upgradeTier = useAppStore((s) => s.upgradeTier);
 
   const topPad = Platform.OS === "web" ? 67 : 0;
   const bottomPad = Platform.OS === "web" ? 34 : 20;
