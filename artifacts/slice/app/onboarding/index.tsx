@@ -39,8 +39,6 @@ export default function OnboardingWelcome() {
             <Text style={styles.tagline}>Reducing your debt{"\n"}one bite at a time.</Text>
           </View>
 
-          <View style={styles.spacer} />
-
           <View style={styles.features}>
             {FEATURES.map((item, i) => (
               <View key={i} style={styles.feature}>
@@ -78,6 +76,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 28,
     paddingTop: 12,
     paddingBottom: 24,
+    justifyContent: "space-between",
   },
   top: {
     alignItems: "center",
@@ -97,8 +96,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
     lineHeight: 25,
   },
-  spacer: { flex: 1, minHeight: 24, maxHeight: 56 },
-  features: { gap: 12, marginBottom: 28 },
+  features: { gap: 12 },
   feature: {
     flexDirection: "row",
     alignItems: "center",
