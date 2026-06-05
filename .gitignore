@@ -50,3 +50,8 @@ Thumbs.db
 
 # Supabase local CLI state
 supabase/.branches/
+
+.env
+.env.local
+.env.*.local
+supabase/.env.local
