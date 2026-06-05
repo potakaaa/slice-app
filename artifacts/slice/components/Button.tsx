@@ -19,6 +19,7 @@ interface ButtonProps {
   disabled?: boolean;
   loading?: boolean;
   style?: ViewStyle;
+  textColor?: string;
   fullWidth?: boolean;
 }
 
@@ -29,6 +30,7 @@ export function Button({
   disabled = false,
   loading = false,
   style,
+  textColor: textColorProp,
   fullWidth = false,
 }: ButtonProps) {
   const colors = useColors();
@@ -48,13 +50,14 @@ export function Button({
           : "transparent";
 
   const textColor =
-    variant === "primary"
+    textColorProp ??
+    (variant === "primary"
       ? colors.primaryForeground
       : variant === "secondary"
         ? colors.secondaryForeground
         : variant === "destructive"
           ? colors.destructiveForeground
-          : colors.primary;
+          : colors.primary);
 
   const borderColor =
     variant === "secondary" ? colors.border : "transparent";

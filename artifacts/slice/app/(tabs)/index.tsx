@@ -17,7 +17,6 @@ import { SummaryCard } from "@/components/SummaryCard";
 import { CreditorCard } from "@/components/CreditorCard";
 import { EmptyState } from "@/components/EmptyState";
 import { TierBadge } from "@/components/TierBadge";
-import { ProgressBar } from "@/components/ProgressBar";
 import { useColors } from "@/hooks/useColors";
 import { useAppStore } from "@/store/useAppStore";
 import {
@@ -42,25 +41,25 @@ export default function DashboardScreen() {
   const totalSavings = getTotalMonthlySavings(creditors);
   const months = getMaxProgramLength(creditors);
   const savings = totalDebt - totalTarget;
-  const savingsRatio = totalDebt > 0 ? savings / totalDebt : 0;
+  const savingsRatio = totalDebt > 0 ? Math.round((savings / totalDebt) * 100) : 0;
   const sorted = getSortedBySnowball(creditors);
   const nextCreditor = sorted.find((c) => c.status === "active");
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
-  const bottomPad = Platform.OS === "web" ? 84 : 84;
+  const bottomPad = 84;
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Header */}
-      <View style={[styles.header, { paddingTop: topPad + 16, backgroundColor: colors.background, borderBottomColor: colors.border }]}>
+      <View style={[styles.header, { paddingTop: topPad + 16, borderBottomColor: colors.border }]}>
         <View style={styles.headerLeft}>
-          <SliceLogo size={36} />
+          <SliceLogo size={32} />
           <View>
             <Text style={[styles.greeting, { color: colors.mutedForeground }]}>
-              Good day{profile.name ? `, ${profile.name.split(" ")[0]}` : ""}
+              {profile.name ? `Hi, ${profile.name.split(" ")[0]}` : "Welcome back"}
             </Text>
             <Text style={[styles.headerTitle, { color: colors.foreground }]}>
-              Your Debt Program
+              Your Program
             </Text>
           </View>
         </View>
@@ -88,29 +87,29 @@ export default function DashboardScreen() {
           </View>
         ) : (
           <>
-            {/* Hero stats */}
-            <View style={[styles.heroCard, { backgroundColor: colors.primary }]}>
+            {/* Hero */}
+            <View style={[styles.hero, { backgroundColor: colors.primary }]}>
               <Text style={styles.heroLabel}>Total Debt</Text>
               <Text style={styles.heroAmount}>{formatCurrency(totalDebt)}</Text>
-              <View style={styles.heroRow}>
+              <View style={styles.heroSeparator} />
+              <View style={styles.heroStats}>
                 <View style={styles.heroStat}>
                   <Text style={styles.heroStatLabel}>Settlement Target</Text>
                   <Text style={styles.heroStatValue}>{formatCurrency(totalTarget)}</Text>
                 </View>
                 <View style={styles.heroStatDivider} />
                 <View style={styles.heroStat}>
-                  <Text style={styles.heroStatLabel}>Est. Savings</Text>
-                  <Text style={[styles.heroStatValue, styles.savingsGreen]}>
+                  <Text style={styles.heroStatLabel}>Estimated Savings</Text>
+                  <Text style={[styles.heroStatValue, styles.savingsColor]}>
                     {formatCurrency(savings)}
                   </Text>
                 </View>
+                <View style={styles.heroStatDivider} />
+                <View style={styles.heroStat}>
+                  <Text style={styles.heroStatLabel}>Savings Rate</Text>
+                  <Text style={[styles.heroStatValue, styles.savingsColor]}>{savingsRatio}%</Text>
+                </View>
               </View>
-              <View style={styles.heroPctRow}>
-                <Text style={styles.heroPctLabel}>
-                  Potential savings: {Math.round(savingsRatio * 100)}%
-                </Text>
-              </View>
-              <ProgressBar progress={0} height={6} color="rgba(255,255,255,0.5)" />
             </View>
 
             {/* Summary row */}
@@ -140,7 +139,7 @@ export default function DashboardScreen() {
                 label="Credit Score"
                 value={profile.creditScore > 0 ? String(profile.creditScore) : "—"}
                 icon="bar-chart-2"
-                subtitle={profile.creditScore > 0 ? "Track in Credit Repair" : "Tap to add"}
+                subtitle={profile.creditScore > 0 ? "Track in Credit Repair" : "Not set"}
                 style={{ flex: 1 }}
               />
             </View>
@@ -150,10 +149,10 @@ export default function DashboardScreen() {
               <View style={styles.section}>
                 <View style={styles.sectionHeader}>
                   <Text style={[styles.sectionTitle, { color: colors.foreground }]}>
-                    Next Focus — Snowball Priority
+                    Next Priority
                   </Text>
                   <Pressable onPress={() => router.push("/snowball")}>
-                    <Text style={[styles.seeAll, { color: colors.primary }]}>Timeline</Text>
+                    <Text style={[styles.seeAll, { color: colors.primary }]}>Full Timeline</Text>
                   </Pressable>
                 </View>
                 <CreditorCard creditor={nextCreditor} rank={1} />
@@ -162,27 +161,32 @@ export default function DashboardScreen() {
 
             {/* Quick actions */}
             <View style={styles.section}>
-              <Text style={[styles.sectionTitle, { color: colors.foreground }]}>
-                Quick Actions
-              </Text>
+              <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Quick Actions</Text>
               <View style={styles.quickActions}>
                 {[
-                  { label: "Add Creditor", icon: "plus-circle", action: () => router.push("/creditor/add") },
-                  { label: "Calculator", icon: "percent", action: () => router.push("/calculator") },
-                  { label: "AI Strategy", icon: "cpu", action: () => router.push("/ai/strategy/first") },
-                  { label: "Credit Repair", icon: "shield", action: () => router.push("/credit-repair") },
+                  { label: "Add Creditor", icon: "plus", route: "/creditor/add" },
+                  { label: "Calculator", icon: "percent", route: "/calculator" },
+                  { label: "AI Strategy", icon: "cpu", route: "/ai/strategy/first" },
+                  { label: "Credit Repair", icon: "shield", route: "/credit-repair" },
                 ].map((item, i) => (
                   <Pressable
                     key={i}
-                    onPress={item.action}
+                    onPress={() => {
+                      const route = item.route.endsWith("first") && creditors.length > 0
+                        ? (item.route.replace("first", creditors[0].id) as any)
+                        : (item.route as any);
+                      router.push(route);
+                    }}
                     style={({ pressed }) => [
                       styles.quickAction,
-                      { backgroundColor: colors.card, borderColor: colors.border, opacity: pressed ? 0.8 : 1 },
+                      {
+                        backgroundColor: colors.card,
+                        borderColor: colors.border,
+                        opacity: pressed ? 0.75 : 1,
+                      },
                     ]}
                   >
-                    <View style={[styles.qaIcon, { backgroundColor: colors.secondary }]}>
-                      <Feather name={item.icon as any} size={20} color={colors.primary} />
-                    </View>
+                    <Feather name={item.icon as any} size={18} color={colors.primary} />
                     <Text style={[styles.qaLabel, { color: colors.foreground }]}>
                       {item.label}
                     </Text>
@@ -191,10 +195,8 @@ export default function DashboardScreen() {
               </View>
             </View>
 
-            {/* Disclaimer */}
             <Text style={[styles.disclaimer, { color: colors.mutedForeground }]}>
-              SLICE does not guarantee settlement results. Estimates are for planning
-              purposes only. Consult a financial professional for personalized advice.
+              Settlement estimates are for planning only. Consult a financial professional for personalized advice.
             </Text>
           </>
         )}
@@ -211,87 +213,78 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 20,
     paddingBottom: 14,
-    borderBottomWidth: 1,
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   headerLeft: { flexDirection: "row", alignItems: "center", gap: 10 },
   headerRight: { flexDirection: "row", alignItems: "center", gap: 10 },
   greeting: { fontSize: 11, fontFamily: "Inter_400Regular" },
-  headerTitle: { fontSize: 16, fontFamily: "Inter_700Bold" },
+  headerTitle: { fontSize: 15, fontFamily: "Inter_700Bold" },
   profileBtn: { padding: 4 },
-  scroll: { padding: 16, gap: 16 },
+  scroll: { padding: 16, gap: 14 },
   emptyWrapper: { height: 400 },
-  heroCard: {
+  hero: {
     borderRadius: 16,
     padding: 20,
-    gap: 12,
+    gap: 14,
   },
   heroLabel: {
-    color: "rgba(255,255,255,0.8)",
-    fontSize: 13,
+    color: "rgba(255,255,255,0.75)",
+    fontSize: 12,
     fontFamily: "Inter_500Medium",
+    letterSpacing: 0.5,
   },
   heroAmount: {
     color: "#FFFFFF",
-    fontSize: 36,
+    fontSize: 38,
     fontFamily: "Inter_700Bold",
+    letterSpacing: -1,
   },
-  heroRow: {
-    flexDirection: "row",
-    alignItems: "center",
+  heroSeparator: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: "rgba(255,255,255,0.25)",
   },
-  heroStat: { flex: 1, gap: 2 },
+  heroStats: { flexDirection: "row", alignItems: "center" },
+  heroStat: { flex: 1, gap: 3 },
   heroStatLabel: {
-    color: "rgba(255,255,255,0.7)",
-    fontSize: 11,
+    color: "rgba(255,255,255,0.65)",
+    fontSize: 10,
     fontFamily: "Inter_400Regular",
   },
   heroStatValue: {
     color: "#FFFFFF",
-    fontSize: 17,
+    fontSize: 15,
     fontFamily: "Inter_600SemiBold",
   },
-  savingsGreen: { color: "#DCFCE7" },
+  savingsColor: { color: "#DCFCE7" },
   heroStatDivider: {
-    width: 1,
-    height: 36,
+    width: StyleSheet.hairlineWidth,
+    height: 32,
     backgroundColor: "rgba(255,255,255,0.25)",
-    marginHorizontal: 16,
-  },
-  heroPctRow: { flexDirection: "row", justifyContent: "flex-end" },
-  heroPctLabel: {
-    color: "rgba(255,255,255,0.75)",
-    fontSize: 12,
-    fontFamily: "Inter_400Regular",
-    marginBottom: 6,
+    marginHorizontal: 12,
   },
   summaryRow: { flexDirection: "row", gap: 12 },
-  section: { gap: 12 },
+  section: { gap: 10 },
   sectionHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
   },
-  sectionTitle: { fontSize: 15, fontFamily: "Inter_700Bold" },
-  seeAll: { fontSize: 13, fontFamily: "Inter_600SemiBold" },
+  sectionTitle: { fontSize: 14, fontFamily: "Inter_700Bold" },
+  seeAll: { fontSize: 13, fontFamily: "Inter_500Medium" },
   quickActions: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 10,
+    gap: 8,
   },
   quickAction: {
-    width: "47%",
-    padding: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    gap: 10,
-    alignItems: "flex-start",
-  },
-  qaIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 10,
+    width: "48%",
+    flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
+    gap: 10,
+    paddingVertical: 14,
+    paddingHorizontal: 14,
+    borderRadius: 12,
+    borderWidth: StyleSheet.hairlineWidth,
   },
   qaLabel: { fontSize: 13, fontFamily: "Inter_600SemiBold" },
   disclaimer: {

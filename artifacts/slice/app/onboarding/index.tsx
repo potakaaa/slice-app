@@ -1,8 +1,8 @@
+import { Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import React from "react";
 import {
-  Dimensions,
   Platform,
   SafeAreaView,
   StyleSheet,
@@ -12,51 +12,50 @@ import {
 
 import { Button } from "@/components/Button";
 import { SliceLogo } from "@/components/SliceLogo";
-import { useColors } from "@/hooks/useColors";
 
-const { height } = Dimensions.get("window");
+const FEATURES: { icon: keyof typeof Feather.glyphMap; text: string }[] = [
+  { icon: "bar-chart-2", text: "Build a customized debt program" },
+  { icon: "percent", text: "Calculate settlement targets" },
+  { icon: "trending-up", text: "Plan your monthly savings" },
+  { icon: "phone", text: "Get AI negotiation guidance" },
+];
 
 export default function OnboardingWelcome() {
-  const colors = useColors();
   const topPad = Platform.OS === "web" ? 67 : 0;
 
   return (
     <View style={styles.container}>
       <LinearGradient
-        colors={["#FF6B35", "#FF8C5A", "#FFB088"]}
+        colors={["#FF6B35", "#FF8055"]}
         style={StyleSheet.absoluteFill}
-        start={{ x: 0.1, y: 0 }}
-        end={{ x: 0.9, y: 1 }}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
       />
       <SafeAreaView style={[styles.safe, { paddingTop: topPad }]}>
         <View style={styles.content}>
           <View style={styles.top}>
-            <SliceLogo size={100} />
+            <SliceLogo size={88} />
             <Text style={styles.appName}>SLICE</Text>
             <Text style={styles.tagline}>Reducing your debt{"\n"}one bite at a time.</Text>
           </View>
 
           <View style={styles.features}>
-            {[
-              { emoji: "📊", text: "Build a customized debt program" },
-              { emoji: "🤝", text: "Calculate settlement targets" },
-              { emoji: "💰", text: "Plan your monthly savings" },
-              { emoji: "📞", text: "Get AI negotiation guidance" },
-            ].map((item, i) => (
+            {FEATURES.map((item, i) => (
               <View key={i} style={styles.feature}>
-                <View style={styles.featureDot}>
-                  <Text style={styles.featureEmoji}>{item.emoji}</Text>
+                <View style={styles.featureIcon}>
+                  <Feather name={item.icon} size={18} color="rgba(255,255,255,0.9)" />
                 </View>
                 <Text style={styles.featureText}>{item.text}</Text>
               </View>
             ))}
           </View>
 
-          <View style={styles.bottom}>
+          <View style={[styles.bottom, { paddingBottom: Platform.OS === "web" ? 34 : 0 }]}>
             <Button
               label="Get Started — It's Free"
               onPress={() => router.push("/onboarding/step1")}
               style={styles.cta}
+              textColor="#FF6B35"
               fullWidth
             />
             <Text style={styles.disclaimer}>
@@ -74,46 +73,41 @@ const styles = StyleSheet.create({
   safe: { flex: 1 },
   content: {
     flex: 1,
-    paddingHorizontal: 28,
-    paddingVertical: 20,
+    paddingHorizontal: 32,
+    paddingVertical: 24,
     justifyContent: "space-between",
   },
   top: {
     alignItems: "center",
-    paddingTop: 20,
-    gap: 16,
+    paddingTop: 16,
+    gap: 14,
   },
   appName: {
-    fontSize: 48,
+    fontSize: 44,
     fontFamily: "Inter_700Bold",
     color: "#FFFFFF",
-    letterSpacing: 6,
+    letterSpacing: 8,
   },
   tagline: {
-    fontSize: 20,
+    fontSize: 18,
     fontFamily: "Inter_400Regular",
-    color: "rgba(255,255,255,0.9)",
+    color: "rgba(255,255,255,0.85)",
     textAlign: "center",
-    lineHeight: 28,
+    lineHeight: 26,
   },
-  features: {
-    gap: 16,
-  },
+  features: { gap: 14 },
   feature: {
     flexDirection: "row",
     alignItems: "center",
     gap: 14,
   },
-  featureDot: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: "rgba(255,255,255,0.2)",
+  featureIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: "rgba(255,255,255,0.15)",
     alignItems: "center",
     justifyContent: "center",
-  },
-  featureEmoji: {
-    fontSize: 20,
   },
   featureText: {
     color: "#FFFFFF",
@@ -121,16 +115,11 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_500Medium",
     flex: 1,
   },
-  bottom: {
-    gap: 12,
-    paddingBottom: Platform.OS === "web" ? 34 : 0,
-  },
-  cta: {
-    backgroundColor: "#FFFFFF",
-  },
+  bottom: { gap: 12 },
+  cta: { backgroundColor: "#FFFFFF" },
   disclaimer: {
     textAlign: "center",
-    color: "rgba(255,255,255,0.7)",
+    color: "rgba(255,255,255,0.65)",
     fontSize: 12,
     fontFamily: "Inter_400Regular",
   },

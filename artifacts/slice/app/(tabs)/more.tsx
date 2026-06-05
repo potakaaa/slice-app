@@ -27,47 +27,21 @@ const MENU_GROUPS: { title: string; items: MenuItem[] }[] = [
   {
     title: "Resources",
     items: [
-      {
-        icon: "shield",
-        label: "Credit Repair",
-        route: "/credit-repair",
-        desc: "Checklist, dispute letters, score tracking",
-      },
-      {
-        icon: "calendar",
-        label: "Book Coaching with Marc",
-        route: "/coaching",
-        desc: "1-on-1 debt resolution coaching",
-        premium: true,
-      },
+      { icon: "shield", label: "Credit Repair", route: "/credit-repair", desc: "Checklist, dispute letters, score tracking" },
+      { icon: "calendar", label: "Coaching with Marc", route: "/coaching", desc: "1-on-1 debt resolution sessions", premium: true },
     ],
   },
   {
     title: "Account",
     items: [
-      {
-        icon: "star",
-        label: "Upgrade Plan",
-        route: "/pricing",
-        desc: "Silver, Gold, and Platinum plans",
-      },
-      {
-        icon: "user",
-        label: "Profile & Settings",
-        route: "/profile",
-        desc: "Edit your info and preferences",
-      },
+      { icon: "zap", label: "Upgrade Plan", route: "/pricing", desc: "Silver, Gold, and Platinum plans" },
+      { icon: "user", label: "Profile & Settings", route: "/profile", desc: "Edit your info and preferences" },
     ],
   },
   {
     title: "Legal",
     items: [
-      {
-        icon: "file-text",
-        label: "Legal Disclaimer",
-        route: "/legal",
-        desc: "SLICE terms and disclosures",
-      },
+      { icon: "file-text", label: "Legal Disclaimer", route: "/legal", desc: "Terms and disclosures" },
     ],
   },
 ];
@@ -78,7 +52,7 @@ export default function MoreScreen() {
   const { profile } = useAppStore((s) => ({ profile: s.profile }));
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
-  const bottomPad = Platform.OS === "web" ? 84 : 84;
+  const bottomPad = 84;
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -90,10 +64,13 @@ export default function MoreScreen() {
         contentContainerStyle={[styles.scroll, { paddingBottom: bottomPad }]}
         showsVerticalScrollIndicator={false}
       >
-        {/* Profile banner */}
+        {/* Profile row */}
         <Pressable
           onPress={() => router.push("/profile")}
-          style={[styles.profileBanner, { backgroundColor: colors.secondary, borderColor: colors.border }]}
+          style={({ pressed }) => [
+            styles.profileRow,
+            { borderBottomColor: colors.border, opacity: pressed ? 0.75 : 1 },
+          ]}
         >
           <View style={[styles.avatar, { backgroundColor: colors.primary }]}>
             <Text style={styles.avatarText}>
@@ -104,36 +81,25 @@ export default function MoreScreen() {
             <Text style={[styles.profileName, { color: colors.foreground }]}>
               {profile.name || "SLICE User"}
             </Text>
-            <View style={styles.tierRow}>
-              <TierBadge tier={profile.tier} />
-              {profile.email ? (
-                <Text style={[styles.profileEmail, { color: colors.mutedForeground }]}>
-                  {profile.email}
-                </Text>
-              ) : null}
-            </View>
+            <TierBadge tier={profile.tier} />
           </View>
-          <Feather name="chevron-right" size={18} color={colors.mutedForeground} />
+          <Feather name="chevron-right" size={16} color={colors.mutedForeground} />
         </Pressable>
 
+        {/* Menu groups */}
         {MENU_GROUPS.map((group) => (
           <View key={group.title} style={styles.group}>
             <Text style={[styles.groupTitle, { color: colors.mutedForeground }]}>
               {group.title.toUpperCase()}
             </Text>
-            <View style={[styles.groupItems, { borderColor: colors.border, backgroundColor: colors.card }]}>
+            <View style={[styles.groupCard, { borderColor: colors.border, backgroundColor: colors.card }]}>
               {group.items.map((item, i) => (
                 <React.Fragment key={item.route}>
                   <Pressable
                     onPress={() => router.push(item.route as any)}
-                    style={({ pressed }) => [
-                      styles.menuItem,
-                      { opacity: pressed ? 0.75 : 1 },
-                    ]}
+                    style={({ pressed }) => [styles.menuItem, { opacity: pressed ? 0.7 : 1 }]}
                   >
-                    <View style={[styles.menuIcon, { backgroundColor: colors.secondary }]}>
-                      <Feather name={item.icon} size={18} color={colors.primary} />
-                    </View>
+                    <Feather name={item.icon} size={18} color={colors.primary} style={styles.menuIcon} />
                     <View style={styles.menuContent}>
                       <View style={styles.menuLabelRow}>
                         <Text style={[styles.menuLabel, { color: colors.foreground }]}>
@@ -141,7 +107,7 @@ export default function MoreScreen() {
                         </Text>
                         {item.premium && (
                           <View style={[styles.premiumTag, { backgroundColor: colors.secondary }]}>
-                            <Text style={[styles.premiumText, { color: colors.primary }]}>PREMIUM</Text>
+                            <Text style={[styles.premiumText, { color: colors.primary }]}>SILVER+</Text>
                           </View>
                         )}
                       </View>
@@ -151,7 +117,7 @@ export default function MoreScreen() {
                         </Text>
                       )}
                     </View>
-                    <Feather name="chevron-right" size={16} color={colors.mutedForeground} />
+                    <Feather name="chevron-right" size={14} color={colors.mutedForeground} />
                   </Pressable>
                   {i < group.items.length - 1 && (
                     <View style={[styles.separator, { backgroundColor: colors.border }]} />
@@ -163,7 +129,7 @@ export default function MoreScreen() {
         ))}
 
         <Text style={[styles.version, { color: colors.mutedForeground }]}>
-          SLICE v1.0.0 · "Reducing your debt one bite at a time."
+          SLICE v1.0.0
         </Text>
       </ScrollView>
     </View>
@@ -175,70 +141,49 @@ const styles = StyleSheet.create({
   header: {
     paddingHorizontal: 20,
     paddingBottom: 14,
-    borderBottomWidth: 1,
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   title: { fontSize: 26, fontFamily: "Inter_700Bold" },
-  scroll: { padding: 16, gap: 16 },
-  profileBanner: {
+  scroll: { gap: 20 },
+  profileRow: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 16,
-    borderRadius: 14,
-    borderWidth: 1,
-    gap: 12,
+    gap: 14,
+    paddingHorizontal: 20,
+    paddingVertical: 18,
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   avatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 46,
+    height: 46,
+    borderRadius: 23,
     alignItems: "center",
     justifyContent: "center",
   },
-  avatarText: { color: "#FFFFFF", fontSize: 20, fontFamily: "Inter_700Bold" },
-  profileInfo: { flex: 1, gap: 6 },
+  avatarText: { color: "#FFFFFF", fontSize: 18, fontFamily: "Inter_700Bold" },
+  profileInfo: { flex: 1, gap: 5 },
   profileName: { fontSize: 15, fontFamily: "Inter_600SemiBold" },
-  tierRow: { flexDirection: "row", alignItems: "center", gap: 8 },
-  profileEmail: { fontSize: 12, fontFamily: "Inter_400Regular" },
-  group: { gap: 8 },
+  group: { gap: 8, paddingHorizontal: 16 },
   groupTitle: {
     fontSize: 11,
     fontFamily: "Inter_700Bold",
     letterSpacing: 0.8,
     paddingHorizontal: 4,
   },
-  groupItems: {
-    borderRadius: 14,
-    borderWidth: 1,
-    overflow: "hidden",
-  },
+  groupCard: { borderRadius: 14, borderWidth: StyleSheet.hairlineWidth, overflow: "hidden" },
   menuItem: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 14,
-    gap: 12,
+    padding: 15,
+    gap: 14,
   },
-  menuIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    alignItems: "center",
-    justifyContent: "center",
-  },
+  menuIcon: { width: 20 },
   menuContent: { flex: 1, gap: 2 },
   menuLabelRow: { flexDirection: "row", alignItems: "center", gap: 8 },
   menuLabel: { fontSize: 14, fontFamily: "Inter_600SemiBold" },
-  premiumTag: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-  },
+  premiumTag: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
   premiumText: { fontSize: 9, fontFamily: "Inter_700Bold", letterSpacing: 0.5 },
   menuDesc: { fontSize: 12, fontFamily: "Inter_400Regular" },
-  separator: { height: 1, marginLeft: 62 },
-  version: {
-    textAlign: "center",
-    fontSize: 12,
-    fontFamily: "Inter_400Regular",
-    paddingVertical: 8,
-  },
+  separator: { height: StyleSheet.hairlineWidth, marginLeft: 48 },
+  version: { textAlign: "center", fontSize: 12, fontFamily: "Inter_400Regular", paddingBottom: 8 },
 });

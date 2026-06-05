@@ -30,82 +30,46 @@ export function SummaryCard({
         accent && { backgroundColor: colors.primary, borderColor: colors.primary },
       ]}
     >
-      <View style={styles.row}>
-        <View
-          style={[
-            styles.iconBox,
-            {
-              backgroundColor: accent ? "rgba(255,255,255,0.2)" : colors.secondary,
-            },
-          ]}
-        >
-          <Feather
-            name={icon}
-            size={18}
-            color={accent ? "#FFFFFF" : colors.primary}
-          />
-        </View>
-        <View style={styles.textGroup}>
-          <Text
-            style={[
-              styles.label,
-              { color: accent ? "rgba(255,255,255,0.8)" : colors.mutedForeground },
-            ]}
-          >
-            {label}
-          </Text>
-          <Text
-            style={[
-              styles.value,
-              { color: accent ? "#FFFFFF" : colors.foreground },
-            ]}
-          >
-            {value}
-          </Text>
-          {subtitle && (
-            <Text
-              style={[
-                styles.subtitle,
-                { color: accent ? "rgba(255,255,255,0.7)" : colors.mutedForeground },
-              ]}
-            >
-              {subtitle}
-            </Text>
-          )}
-        </View>
-      </View>
+      <Feather
+        name={icon}
+        size={16}
+        color={accent ? "rgba(255,255,255,0.7)" : colors.mutedForeground}
+        style={styles.icon}
+      />
+      <Text
+        style={[styles.value, { color: accent ? "#FFFFFF" : colors.foreground }]}
+        numberOfLines={1}
+        adjustsFontSizeToFit
+      >
+        {value}
+      </Text>
+      <Text style={[styles.label, { color: accent ? "rgba(255,255,255,0.75)" : colors.mutedForeground }]}>
+        {label}
+      </Text>
+      {subtitle && (
+        <Text style={[styles.subtitle, { color: accent ? "rgba(255,255,255,0.6)" : colors.mutedForeground }]}>
+          {subtitle}
+        </Text>
+      )}
     </Card>
   );
 }
 
 const styles = StyleSheet.create({
-  row: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
-  iconBox: {
-    width: 40,
-    height: 40,
-    borderRadius: 10,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  textGroup: {
-    flex: 1,
-  },
-  label: {
-    fontSize: 12,
-    fontFamily: "Inter_500Medium",
-    marginBottom: 2,
-  },
+  icon: { marginBottom: 6 },
   value: {
     fontSize: 20,
     fontFamily: "Inter_700Bold",
+    letterSpacing: -0.5,
+  },
+  label: {
+    fontSize: 11,
+    fontFamily: "Inter_500Medium",
+    marginTop: 2,
   },
   subtitle: {
-    fontSize: 11,
+    fontSize: 10,
     fontFamily: "Inter_400Regular",
-    marginTop: 2,
+    marginTop: 1,
   },
 });
