@@ -11,14 +11,18 @@ Deno.serve((req) => withCors(req, async () => {
     const body = profileUpsertSchema.parse(await readJson(req));
     const versions = legalVersions();
     const now = new Date().toISOString();
+    // terms_accepted / privacy_policy_accepted are acceptance signals, not
+    // columns on profiles. Keep them out of the DB payload (they only drive the
+    // *_accepted_at timestamps) or the upsert fails with PGRST204.
+    const { terms_accepted, privacy_policy_accepted, ...profileFields } = body;
     const payload = {
       id: ctx.user.id,
       email: ctx.user.email ?? "",
-      ...body,
+      ...profileFields,
       privacy_policy_version: body.privacy_policy_version ?? versions.privacyVersion,
-      privacy_policy_accepted_at: body.privacy_policy_accepted ? now : undefined,
+      privacy_policy_accepted_at: privacy_policy_accepted ? now : undefined,
       terms_version: body.terms_version ?? versions.termsVersion,
-      terms_accepted_at: body.terms_accepted ? now : undefined,
+      terms_accepted_at: terms_accepted ? now : undefined,
     };
 
     const { data, error } = await ctx.userClient

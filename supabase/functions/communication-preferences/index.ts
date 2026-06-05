@@ -7,12 +7,12 @@ Deno.serve((req) => withCors(req, async () => {
   try {
     const ctx = await requireAuth(req);
     const body = communicationPreferencesSchema.parse(await readJson(req));
-    const { data, error } = await ctx.userClient
-      .from("profiles")
-      .update(body)
-      .eq("id", ctx.user.id)
-      .select()
-      .single();
+    const profiles = ctx.userClient.from("profiles");
+    // An update with no fields issues an empty UPDATE that matches 0 rows
+    // (PGRST116) and surfaces as a generic 500. Treat a no-op save as a read.
+    const { data, error } = Object.keys(body).length === 0
+      ? await profiles.select("*").eq("id", ctx.user.id).single()
+      : await profiles.update(body).eq("id", ctx.user.id).select().single();
     if (error) throw error;
     return ok(data);
   } catch (error) {

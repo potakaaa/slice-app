@@ -30,12 +30,12 @@ Deno.serve((req) => withCors(req, async () => {
     if (req.method === "PATCH") {
       const body = creditorPatchSchema.parse(await readJson(req));
       const { id: creditorId, ...updates } = body;
-      const { data, error } = await ctx.userClient
-        .from("creditors")
-        .update(updates)
-        .eq("id", creditorId)
-        .select()
-        .single();
+      const creditors = ctx.userClient.from("creditors");
+      // An update with no fields issues an empty UPDATE that matches 0 rows
+      // (PGRST116) and surfaces as a generic 500. Treat a no-op save as a read.
+      const { data, error } = Object.keys(updates).length === 0
+        ? await creditors.select("*").eq("id", creditorId).single()
+        : await creditors.update(updates).eq("id", creditorId).select().single();
       if (error) throw error;
       return ok(data);
     }
