@@ -81,9 +81,11 @@ export default function OnboardingStep2() {
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
         <View style={styles.header}>
-          <Pressable onPress={() => router.back()} style={styles.back}>
-            <Feather name="arrow-left" size={22} color={colors.foreground} />
-          </Pressable>
+          {Platform.OS !== "ios" && (
+            <Pressable onPress={() => router.back()} style={styles.back}>
+              <Feather name="arrow-left" size={22} color={colors.foreground} />
+            </Pressable>
+          )}
           <View style={styles.progress}>
             {[1, 2, 3].map((step) => (
               <View
