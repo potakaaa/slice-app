@@ -51,7 +51,7 @@ const DISCLAIMERS = [
   {
     icon: "lock",
     title: "Data Privacy",
-    text: "Your financial data is stored locally on your device using encrypted storage. SLICE does not transmit your personal financial information to any third party without your explicit consent.",
+    text: "Your financial data is stored locally on your device and never leaves your phone. SLICE does not transmit your personal financial information to any server or third party.",
   },
 ];
 

@@ -30,6 +30,10 @@ function RootLayoutNav() {
         options={{ title: "Add Creditor", presentation: "modal" }}
       />
       <Stack.Screen name="creditor/[id]" options={{ title: "Creditor Detail" }} />
+      <Stack.Screen
+        name="creditor/edit/[id]"
+        options={{ title: "Edit Creditor", presentation: "modal" }}
+      />
       <Stack.Screen name="ai/strategy/[id]" options={{ title: "AI Strategy" }} />
       <Stack.Screen name="ai/script/[id]" options={{ title: "AI Script" }} />
       <Stack.Screen name="calculator" options={{ title: "Settlement Calculator" }} />

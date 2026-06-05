@@ -99,13 +99,20 @@ export default function CreditorDetailScreen() {
         {/* Hero */}
         <View style={[styles.hero, { backgroundColor: colors.primary }]}>
           <View style={styles.heroHeader}>
-            <View>
+            <View style={{ flex: 1 }}>
               <Text style={styles.heroName}>{creditor.name}</Text>
               {creditor.phone ? (
                 <Text style={styles.heroPhone}>{creditor.phone}</Text>
               ) : null}
             </View>
-            <StatusBadge status={creditor.status} />
+            <Pressable
+              onPress={() => router.push(`/creditor/edit/${creditor.id}`)}
+              style={styles.editBtn}
+              hitSlop={8}
+            >
+              <Feather name="edit-2" size={14} color="#FF6B35" />
+              <Text style={styles.editBtnText}>Edit</Text>
+            </Pressable>
           </View>
           <Text style={styles.heroAmount}>{formatCurrency(creditor.balance)}</Text>
           <Text style={styles.heroLabel}>Total Balance Owed</Text>
@@ -350,6 +357,16 @@ const styles = StyleSheet.create({
     textAlignVertical: "top",
   },
   actions: { gap: 10 },
+  editBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "#FFFFFF",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  editBtnText: { fontSize: 13, fontFamily: "Inter_600SemiBold", color: "#FF6B35" },
   disclaimer: {
     fontSize: 11,
     fontFamily: "Inter_400Regular",

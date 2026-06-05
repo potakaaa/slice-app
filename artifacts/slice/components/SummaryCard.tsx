@@ -1,5 +1,5 @@
 import React from "react";
-import { StyleSheet, Text, View, type ViewStyle } from "react-native";
+import { StyleSheet, Text, View, type StyleProp, type ViewStyle } from "react-native";
 import { Feather } from "@expo/vector-icons";
 
 import { useColors } from "@/hooks/useColors";
@@ -11,7 +11,7 @@ interface SummaryCardProps {
   icon: keyof typeof Feather.glyphMap;
   subtitle?: string;
   accent?: boolean;
-  style?: ViewStyle;
+  style?: StyleProp<ViewStyle>;
 }
 
 export function SummaryCard({
