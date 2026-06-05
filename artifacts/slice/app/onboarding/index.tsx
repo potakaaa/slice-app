@@ -34,18 +34,20 @@ export default function OnboardingWelcome() {
       <SafeAreaView style={[styles.safe, { paddingTop: topPad }]}>
         <View style={styles.content}>
           <View style={styles.top}>
-            <SliceLogo size={88} />
+            <SliceLogo size={80} />
             <Text style={styles.appName}>SLICE</Text>
             <Text style={styles.tagline}>Reducing your debt{"\n"}one bite at a time.</Text>
           </View>
+
+          <View style={styles.spacer} />
 
           <View style={styles.features}>
             {FEATURES.map((item, i) => (
               <View key={i} style={styles.feature}>
                 <View style={styles.featureIcon}>
-                  <Feather name={item.icon} size={18} color="rgba(255,255,255,0.9)" />
+                  <Feather name={item.icon} size={16} color="rgba(255,255,255,0.9)" />
                 </View>
-                <Text style={styles.featureText}>{item.text}</Text>
+                <Text style={styles.featureText} numberOfLines={1}>{item.text}</Text>
               </View>
             ))}
           </View>
@@ -73,47 +75,50 @@ const styles = StyleSheet.create({
   safe: { flex: 1 },
   content: {
     flex: 1,
-    paddingHorizontal: 32,
-    paddingVertical: 24,
-    justifyContent: "space-between",
+    paddingHorizontal: 28,
+    paddingTop: 12,
+    paddingBottom: 24,
   },
   top: {
     alignItems: "center",
-    paddingTop: 16,
-    gap: 14,
+    paddingTop: 8,
+    gap: 12,
   },
   appName: {
-    fontSize: 44,
+    fontSize: 42,
     fontFamily: "Inter_700Bold",
     color: "#FFFFFF",
     letterSpacing: 8,
   },
   tagline: {
-    fontSize: 18,
+    fontSize: 17,
     fontFamily: "Inter_400Regular",
     color: "rgba(255,255,255,0.85)",
     textAlign: "center",
-    lineHeight: 26,
+    lineHeight: 25,
   },
-  features: { gap: 14 },
+  spacer: { flex: 1, minHeight: 24, maxHeight: 56 },
+  features: { gap: 12, marginBottom: 28 },
   feature: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 14,
+    gap: 12,
   },
   featureIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
+    width: 34,
+    height: 34,
+    borderRadius: 9,
     backgroundColor: "rgba(255,255,255,0.15)",
     alignItems: "center",
     justifyContent: "center",
+    flexShrink: 0,
   },
   featureText: {
     color: "#FFFFFF",
     fontSize: 15,
     fontFamily: "Inter_500Medium",
     flex: 1,
+    flexShrink: 1,
   },
   bottom: { gap: 12 },
   cta: { backgroundColor: "#FFFFFF" },
