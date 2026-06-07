@@ -7,7 +7,9 @@ import type {
   CoachingBooking,
   Creditor,
   CreditRepairTask,
+  DebtProgram,
   PrimaryGoal,
+  SavingsTrackerMonth,
   SubscriptionTier,
   UserProfile,
 } from "@/types";
@@ -51,6 +53,27 @@ type CoachingBookingRow = {
   starts_at: string | null;
   status: CoachingBooking["status"];
   created_at: string;
+};
+
+type AggregateProgramApiResponse = {
+  program: {
+    id: string;
+    totalDebt: number;
+    estimatedSettlementAmount: number;
+    monthlySavingsAmount: number;
+    programLengthMonths: number;
+    settlementRate: number;
+    disclosureAccepted: boolean;
+    disclosureAcceptedAt?: string | null;
+  } | null;
+  months: Array<{
+    id: string;
+    programId: string;
+    monthIndex: number;
+    monthlyAmount: number;
+    status: SavingsTrackerMonth["status"];
+    savedAt: string | null;
+  }>;
 };
 
 export const DEFAULT_PROFILE: UserProfile = {
@@ -116,6 +139,34 @@ function mapBooking(row: CoachingBookingRow): CoachingBooking {
     date: row.starts_at ?? undefined,
     status: row.status,
     createdAt: row.created_at,
+  };
+}
+
+function mapAggregateProgramResponse(response: AggregateProgramApiResponse): {
+  program: DebtProgram | null;
+  months: SavingsTrackerMonth[];
+} {
+  return {
+    program: response.program
+      ? {
+        id: response.program.id,
+        totalDebt: toNumber(response.program.totalDebt),
+        estimatedSettlementAmount: toNumber(response.program.estimatedSettlementAmount),
+        monthlySavingsAmount: toNumber(response.program.monthlySavingsAmount),
+        programLengthMonths: response.program.programLengthMonths,
+        settlementRate: toNumber(response.program.settlementRate, 0.5),
+        disclosureAccepted: response.program.disclosureAccepted,
+        disclosureAcceptedAt: response.program.disclosureAcceptedAt ?? null,
+      }
+      : null,
+    months: response.months.map((month) => ({
+      id: month.id,
+      programId: month.programId,
+      monthIndex: month.monthIndex,
+      monthlyAmount: toNumber(month.monthlyAmount),
+      status: month.status,
+      savedAt: month.savedAt,
+    })),
   };
 }
 
@@ -372,6 +423,57 @@ export function useDeleteAccount() {
     mutationFn: async () => {
       const api = createSliceApiClient();
       return api.deleteAccount();
+    },
+  });
+}
+
+export function useAggregateProgram() {
+  const { user } = useAuth();
+  const query = useQuery({
+    queryKey: ["aggregate-program", user?.id],
+    enabled: Boolean(user),
+    queryFn: async () => {
+      const api = createSliceApiClient();
+      const response = await api.getAggregateProgram();
+      return mapAggregateProgramResponse(response);
+    },
+  });
+
+  return {
+    ...query,
+    debtProgram: query.data?.program ?? null,
+    trackerMonths: query.data?.months ?? [],
+  };
+}
+
+export function useSyncAggregateProgram() {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: async ({ acceptDisclosure = false }: { acceptDisclosure?: boolean } = {}) => {
+      const api = createSliceApiClient();
+      const response = await api.syncAggregateProgram(acceptDisclosure);
+      return mapAggregateProgramResponse(response);
+    },
+    onSuccess: (data) => {
+      queryClient.setQueryData(["aggregate-program", user?.id], data);
+    },
+  });
+}
+
+export function useToggleSavingsTrackerMonth() {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: async ({ monthId, saved }: { monthId: string; saved: boolean }) => {
+      const api = createSliceApiClient();
+      const response = await api.toggleSavingsTrackerMonth(monthId, saved);
+      return mapAggregateProgramResponse(response);
+    },
+    onSuccess: (data) => {
+      queryClient.setQueryData(["aggregate-program", user?.id], data);
     },
   });
 }

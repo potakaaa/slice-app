@@ -42,3 +42,23 @@ export interface CoachingBooking {
   status: "pending" | "confirmed" | "completed";
   createdAt: string;
 }
+
+export interface DebtProgram {
+  id: string;
+  totalDebt: number;
+  estimatedSettlementAmount: number;
+  monthlySavingsAmount: number;
+  programLengthMonths: number;
+  settlementRate: number;
+  disclosureAccepted: boolean;
+  disclosureAcceptedAt?: string | null;
+}
+
+export interface SavingsTrackerMonth {
+  id: string;
+  programId: string;
+  monthIndex: number;
+  monthlyAmount: number;
+  status: "pending" | "saved";
+  savedAt: string | null;
+}

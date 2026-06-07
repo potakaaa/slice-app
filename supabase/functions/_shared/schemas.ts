@@ -97,3 +97,12 @@ export const pushTokenSchema = z.object({
 export const referralRedeemSchema = z.object({
   code: z.string().trim().min(3).max(32),
 });
+
+export const aggregateProgramSyncSchema = z.object({
+  accept_disclosure: z.boolean().optional(),
+});
+
+export const savingsTrackerMonthPatchSchema = z.object({
+  month_id: uuidSchema,
+  saved: z.boolean(),
+});

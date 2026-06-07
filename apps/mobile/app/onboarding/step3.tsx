@@ -15,6 +15,7 @@ import {
 
 import { Button } from "@/components/Button";
 import { useColors } from "@/hooks/useColors";
+import { useAuth } from "@/lib/auth";
 import { useAppStore } from "@/store/useAppStore";
 import type { PrimaryGoal } from "@/types";
 
@@ -27,11 +28,15 @@ const GOALS: { value: PrimaryGoal; label: string; desc: string; icon: string }[]
 
 export default function OnboardingStep3() {
   const colors = useColors();
+  const { session } = useAuth();
+  const profile = useAppStore((s) => s.profile);
   const updateProfile = useAppStore((s) => s.updateProfile);
   const markOnboardingReady = useAppStore((s) => s.markOnboardingReady);
 
-  const [creditScore, setCreditScore] = useState("");
-  const [goal, setGoal] = useState<PrimaryGoal>("settle");
+  const [creditScore, setCreditScore] = useState(
+    profile.creditScore > 0 ? String(profile.creditScore) : ""
+  );
+  const [goal, setGoal] = useState<PrimaryGoal>(profile.primaryGoal);
   const topPad = Platform.OS === "web" ? 67 : 0;
 
   const handleNext = () => {
@@ -40,7 +45,7 @@ export default function OnboardingStep3() {
       primaryGoal: goal,
     });
     markOnboardingReady();
-    router.replace("/auth");
+    router.replace(session ? "/onboarding/complete" : "/auth");
   };
 
   return (

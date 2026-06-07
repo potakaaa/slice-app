@@ -13,10 +13,15 @@ import type { ZodType } from "zod";
 
 import { IntegrationError } from "./integrationErrors";
 import { getCurrentAccessToken, getSupabasePublicConfig, type AccessTokenProvider } from "./supabase";
+import type { DebtProgram, SavingsTrackerMonth } from "@/types";
 
 export type SliceApiSuccess<T> = { ok: true; data: T };
 export type SliceApiError = { ok: false; error: { code: string; message: string } };
 export type SliceApiResponse<T> = SliceApiSuccess<T> | SliceApiError;
+export type AggregateProgramResponse = {
+  program: DebtProgram | null;
+  months: SavingsTrackerMonth[];
+};
 
 export class SliceApiClient {
   constructor(private readonly getAccessToken: AccessTokenProvider) {}
@@ -160,6 +165,23 @@ export class SliceApiClient {
 
   deleteAccount() {
     return this.call("account-delete");
+  }
+
+  getAggregateProgram() {
+    return this.call<AggregateProgramResponse>("aggregate-program", { method: "GET" });
+  }
+
+  syncAggregateProgram(acceptDisclosure = false) {
+    return this.call<AggregateProgramResponse>("aggregate-program", {
+      body: { accept_disclosure: acceptDisclosure },
+    });
+  }
+
+  toggleSavingsTrackerMonth(monthId: string, saved: boolean) {
+    return this.call<AggregateProgramResponse>("aggregate-program", {
+      method: "PATCH",
+      body: { month_id: monthId, saved },
+    });
   }
 }
 

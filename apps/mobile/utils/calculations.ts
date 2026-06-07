@@ -1,5 +1,7 @@
 import type { Creditor } from "@/types";
 
+export const SIMPLE_PROGRAM_SETTLEMENT_RATE = 0.5;
+
 export function calcSettledAmount(
   balance: number,
   settlementPercentage: number
@@ -13,6 +15,23 @@ export function calcProgramLength(
 ): number {
   if (monthlySavings <= 0) return 0;
   return Math.ceil(settledAmount / monthlySavings);
+}
+
+export function calcSimpleProgramSettlementAmount(totalDebt: number): number {
+  return totalDebt * SIMPLE_PROGRAM_SETTLEMENT_RATE;
+}
+
+export function buildSimpleDebtProgram(totalDebt: number, monthlySavings: number) {
+  const estimatedSettlementAmount = calcSimpleProgramSettlementAmount(totalDebt);
+  const programLengthMonths = calcProgramLength(estimatedSettlementAmount, monthlySavings);
+
+  return {
+    totalDebt,
+    estimatedSettlementAmount,
+    monthlySavingsAmount: monthlySavings,
+    programLengthMonths,
+    settlementRate: SIMPLE_PROGRAM_SETTLEMENT_RATE,
+  };
 }
 
 export function calcTargetDate(months: number): string {

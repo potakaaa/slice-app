@@ -18,8 +18,9 @@ import { CreditorCard } from "@/components/CreditorCard";
 import { EmptyState } from "@/components/EmptyState";
 import { TierBadge } from "@/components/TierBadge";
 import { useColors } from "@/hooks/useColors";
-import { useCreditors, useProfile } from "@/lib/sliceData";
+import { useAggregateProgram, useCreditors, useProfile } from "@/lib/sliceData";
 import {
+  buildSimpleDebtProgram,
   formatCurrency,
   getMaxProgramLength,
   getSortedBySnowball,
@@ -28,11 +29,18 @@ import {
   getTotalSettlementTarget,
 } from "@/utils/calculations";
 
+function getPersonalProgramName(name: string) {
+  const firstName = name.trim().split(/\s+/)[0];
+  if (!firstName) return "Your Customized Debt Program";
+  return `${firstName}${firstName.endsWith("s") ? "'" : "'s"} Customized Debt Program`;
+}
+
 export default function DashboardScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { profile } = useProfile();
   const { creditors } = useCreditors();
+  const { debtProgram } = useAggregateProgram();
 
   const totalDebt = getTotalDebt(creditors);
   const totalTarget = getTotalSettlementTarget(creditors);
@@ -42,6 +50,9 @@ export default function DashboardScreen() {
   const savingsRatio = totalDebt > 0 ? Math.round((savings / totalDebt) * 100) : 0;
   const sorted = getSortedBySnowball(creditors);
   const nextCreditor = sorted.find((c) => c.status === "active");
+  const programName = getPersonalProgramName(profile.name);
+  const shouldPromptProgram = creditors.length > 0 && !debtProgram?.disclosureAccepted;
+  const aggregateProgram = debtProgram ?? buildSimpleDebtProgram(totalDebt, profile.defaultMonthlySavings);
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const bottomPad = 84;
@@ -76,15 +87,45 @@ export default function DashboardScreen() {
         {creditors.length === 0 ? (
           <View style={styles.emptyWrapper}>
             <EmptyState
-              icon="credit-card"
-              title="No creditors yet"
-              description="Add your first creditor to start building your debt program."
-              actionLabel="Add Creditor"
+              icon="target"
+              title={`Start ${programName}`}
+              description="Add your first creditor and SLICE will turn it into a simple savings plan with a monthly tracker."
+              actionLabel="Start Setup"
               onAction={() => router.push("/creditor/add")}
             />
           </View>
         ) : (
           <>
+            {shouldPromptProgram && (
+              <Pressable
+                onPress={() => router.push("/savings-planner")}
+                style={({ pressed }) => [
+                  styles.programPrompt,
+                  {
+                    backgroundColor: colors.secondary,
+                    borderColor: colors.primary,
+                    opacity: pressed ? 0.8 : 1,
+                  },
+                ]}
+              >
+                <View style={styles.programPromptIcon}>
+                  <Feather name="target" size={20} color={colors.primary} />
+                </View>
+                <View style={styles.programPromptText}>
+                  <Text style={[styles.programPromptEyebrow, { color: colors.primary }]}>
+                    Program setup ready
+                  </Text>
+                  <Text style={[styles.programPromptTitle, { color: colors.foreground }]}>
+                    Build {programName}
+                  </Text>
+                  <Text style={[styles.programPromptDesc, { color: colors.mutedForeground }]}>
+                    See your 50% settlement estimate, savings timeline, and month-by-month tracker.
+                  </Text>
+                </View>
+                <Feather name="chevron-right" size={20} color={colors.primary} />
+              </Pressable>
+            )}
+
             {/* Hero */}
             <View style={[styles.hero, { backgroundColor: colors.primary }]}>
               <Text style={styles.heroLabel}>Total Debt</Text>
@@ -140,6 +181,65 @@ export default function DashboardScreen() {
                 subtitle={profile.creditScore > 0 ? "Track in Credit Repair" : "Not set"}
                 style={{ flex: 1 }}
               />
+            </View>
+
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <Text style={[styles.sectionTitle, { color: colors.foreground }]}>
+                  Customized Program
+                </Text>
+                <Pressable onPress={() => router.push("/savings-planner")}>
+                  <Text style={[styles.seeAll, { color: colors.primary }]}>View Tracker</Text>
+                </Pressable>
+              </View>
+              <Pressable
+                onPress={() => router.push("/savings-planner")}
+                style={({ pressed }) => [
+                  styles.programOverview,
+                  {
+                    backgroundColor: colors.card,
+                    borderColor: colors.border,
+                    opacity: pressed ? 0.8 : 1,
+                  },
+                ]}
+              >
+                <View style={styles.programOverviewHeader}>
+                  <View style={styles.programOverviewTitleWrap}>
+                    <Text style={[styles.programOverviewTitle, { color: colors.foreground }]}>
+                      {programName}
+                    </Text>
+                    <Text style={[styles.programOverviewFooterText, { color: colors.mutedForeground }]}>
+                      {aggregateProgram.programLengthMonths > 0
+                        ? `${aggregateProgram.programLengthMonths} month savings timeline`
+                        : "Add monthly savings to generate a timeline"}
+                    </Text>
+                  </View>
+                  <View style={[styles.programOverviewBadge, { backgroundColor: colors.secondary }]}>
+                    <Text style={[styles.programOverviewBadgeText, { color: colors.primary }]}>
+                      50%
+                    </Text>
+                  </View>
+                </View>
+
+                <View style={styles.programOverviewStats}>
+                  <View style={styles.programOverviewStat}>
+                    <Text style={[styles.programOverviewLabel, { color: colors.mutedForeground }]}>
+                      Settlement estimate
+                    </Text>
+                    <Text style={[styles.programOverviewValue, { color: colors.primary }]}>
+                      {formatCurrency(aggregateProgram.estimatedSettlementAmount)}
+                    </Text>
+                  </View>
+                  <View style={styles.programOverviewStat}>
+                    <Text style={[styles.programOverviewLabel, { color: colors.mutedForeground }]}>
+                      Monthly savings
+                    </Text>
+                    <Text style={[styles.programOverviewValue, { color: colors.foreground }]}>
+                      {formatCurrency(aggregateProgram.monthlySavingsAmount)}
+                    </Text>
+                  </View>
+                </View>
+              </Pressable>
             </View>
 
             {/* Next focus */}
@@ -220,6 +320,88 @@ const styles = StyleSheet.create({
   profileBtn: { padding: 4 },
   scroll: { padding: 16, gap: 14 },
   emptyWrapper: { height: 400 },
+  programPrompt: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 14,
+  },
+  programPromptIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#FFFFFF",
+  },
+  programPromptText: { flex: 1, gap: 3 },
+  programPromptEyebrow: {
+    fontSize: 11,
+    fontFamily: "Inter_700Bold",
+    textTransform: "uppercase",
+  },
+  programPromptTitle: {
+    fontSize: 16,
+    fontFamily: "Inter_700Bold",
+    lineHeight: 21,
+  },
+  programPromptDesc: {
+    fontSize: 12,
+    fontFamily: "Inter_400Regular",
+    lineHeight: 17,
+  },
+  programOverview: {
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 16,
+    gap: 14,
+  },
+  programOverviewHeader: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  programOverviewTitleWrap: { flex: 1, gap: 3 },
+  programOverviewEyebrow: {
+    fontSize: 11,
+    fontFamily: "Inter_700Bold",
+    textTransform: "uppercase",
+  },
+  programOverviewTitle: {
+    fontSize: 18,
+    fontFamily: "Inter_700Bold",
+    lineHeight: 24,
+  },
+  programOverviewBadge: {
+    minWidth: 44,
+    height: 34,
+    borderRadius: 17,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 10,
+  },
+  programOverviewBadgeText: { fontSize: 14, fontFamily: "Inter_700Bold" },
+  programOverviewStats: { flexDirection: "row", gap: 10 },
+  programOverviewStat: { flex: 1, gap: 3 },
+  programOverviewLabel: { fontSize: 11, fontFamily: "Inter_400Regular" },
+  programOverviewValue: { fontSize: 20, fontFamily: "Inter_700Bold" },
+  programOverviewFooter: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    paddingTop: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 10,
+  },
+  programOverviewFooterText: {
+    flex: 1,
+    fontSize: 12,
+    fontFamily: "Inter_600SemiBold",
+    lineHeight: 17,
+  },
   hero: {
     borderRadius: 16,
     padding: 20,

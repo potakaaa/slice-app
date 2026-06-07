@@ -50,7 +50,7 @@ export default function AuthScreen() {
 
   useEffect(() => {
     if (!session) return;
-    if (awaitingEmailConfirmation && onboardingReadyForAuth) {
+    if (onboardingReadyForAuth) {
       setAwaitingEmailConfirmation(false);
       router.replace("/onboarding/complete");
     } else if (!onboardingReadyForAuth) {
@@ -74,7 +74,7 @@ export default function AuthScreen() {
     try {
       if (mode === "signin") {
         await signIn(email, password);
-        if (awaitingEmailConfirmation && onboardingReadyForAuth) {
+        if (onboardingReadyForAuth) {
           setAwaitingEmailConfirmation(false);
           router.replace("/onboarding/complete");
         } else {

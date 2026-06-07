@@ -1,165 +1,396 @@
-import React, { useState } from "react";
+import { Feather } from "@expo/vector-icons";
+import { router } from "expo-router";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
-  KeyboardAvoidingView,
+  ActivityIndicator,
   Platform,
+  Pressable,
   SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from "react-native";
 
 import { Card } from "@/components/Card";
+import { EmptyState } from "@/components/EmptyState";
 import { ProgressBar } from "@/components/ProgressBar";
 import { useColors } from "@/hooks/useColors";
 import {
+  useAggregateProgram,
+  useCreditors,
+  useProfile,
+  useSyncAggregateProgram,
+  useToggleSavingsTrackerMonth,
+} from "@/lib/sliceData";
+import {
+  buildSimpleDebtProgram,
   formatCurrency,
-  formatMoneyInput,
-  parseMoneyInput,
+  getTotalDebt,
 } from "@/utils/calculations";
+
+const DISCLOSURE_COPY =
+  "This monthly savings tracker is for planning only. SLICE does not guarantee settlement results, and you should get any settlement agreement in writing before making payment.";
+
+function getPersonalProgramName(name: string) {
+  const firstName = name.trim().split(/\s+/)[0];
+  if (!firstName) return "Your Customized Debt Program";
+  return `${firstName}${firstName.endsWith("s") ? "'" : "'s"} Customized Debt Program`;
+}
 
 export default function SavingsPlannerScreen() {
   const colors = useColors();
-  const [balance, setBalance] = useState(formatMoneyInput(10000));
-  const [pct, setPct] = useState("50");
+  const { creditors, isLoading: creditorsLoading } = useCreditors();
+  const { profile, isLoading: profileLoading } = useProfile();
+  const { debtProgram, trackerMonths, isLoading: programLoading } = useAggregateProgram();
+  const syncProgram = useSyncAggregateProgram();
+  const toggleMonth = useToggleSavingsTrackerMonth();
+
   const topPad = Platform.OS === "web" ? 67 : 0;
   const bottomPad = Platform.OS === "web" ? 34 : 20;
+  const [localDisclosureAccepted, setLocalDisclosureAccepted] = useState(false);
+  const lastSyncKeyRef = useRef<string | null>(null);
 
-  const bal = parseMoneyInput(balance);
-  const settlePct = Number(pct) / 100;
-  const settlementTarget = bal * settlePct;
+  const totalDebt = getTotalDebt(creditors);
+  const monthlySavings = profile.defaultMonthlySavings;
+  const programName = getPersonalProgramName(profile.name);
+  const previewProgram = useMemo(
+    () => buildSimpleDebtProgram(totalDebt, monthlySavings),
+    [monthlySavings, totalDebt],
+  );
 
-  const MONTHLY_OPTIONS = [100, 200, 300, 400, 500, 600, 750, 1000, 1500, 2000];
+  const syncKey = useMemo(
+    () =>
+      JSON.stringify({
+        totalDebt,
+        monthlySavings,
+        creditors: creditors.map((creditor) => ({
+          id: creditor.id,
+          balance: creditor.balance,
+        })),
+      }),
+    [creditors, monthlySavings, totalDebt],
+  );
+
+  useEffect(() => {
+    if (debtProgram?.disclosureAccepted) {
+      setLocalDisclosureAccepted(true);
+    }
+  }, [debtProgram?.disclosureAccepted]);
+
+  useEffect(() => {
+    if (creditorsLoading || profileLoading || creditors.length === 0 || syncProgram.isPending) return;
+    if (lastSyncKeyRef.current === syncKey) return;
+    lastSyncKeyRef.current = syncKey;
+    syncProgram.mutate({}, {
+      onError: () => {
+        lastSyncKeyRef.current = null;
+      },
+    });
+  }, [creditors.length, creditorsLoading, profileLoading, syncKey, syncProgram]);
+
+  const program = debtProgram ?? {
+    id: "preview",
+    ...previewProgram,
+    disclosureAccepted: false,
+    disclosureAcceptedAt: null,
+  };
+
+  const trackerEnabled =
+    localDisclosureAccepted || debtProgram?.disclosureAccepted || false;
+  const completedMonths = trackerMonths.filter((month) => month.status === "saved").length;
+  const trackerProgress =
+    trackerMonths.length > 0 ? completedMonths / trackerMonths.length : 0;
+  const showLoadingState =
+    (programLoading && !debtProgram) ||
+    (syncProgram.isPending && !debtProgram && creditors.length > 0);
+
+  const handleAcceptDisclosure = () => {
+    if (trackerEnabled) return;
+    setLocalDisclosureAccepted(true);
+    syncProgram.mutate({ acceptDisclosure: true });
+  };
+
+  const handleToggleMonth = (monthId: string, saved: boolean) => {
+    toggleMonth.mutate({ monthId, saved });
+  };
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: colors.background, paddingTop: topPad }]}>
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-      >
+      {creditorsLoading || profileLoading || showLoadingState ? (
+        <View style={styles.loadingState}>
+          <ActivityIndicator size="large" color={colors.primary} />
+        </View>
+      ) : creditors.length === 0 ? (
+        <EmptyState
+          icon="trending-up"
+          title="No savings tracker yet"
+          description="Add at least one creditor to build your customized debt program and monthly savings tracker."
+          actionLabel="Add Creditor"
+          onAction={() => router.push("/creditor/add")}
+        />
+      ) : (
         <ScrollView
           contentContainerStyle={[styles.scroll, { paddingBottom: bottomPad }]}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
           <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>
-            See how different monthly savings amounts affect your timeline.
+            Track one simple savings plan for your total debt using SLICE&apos;s default 50%
+            settlement estimate.
           </Text>
 
-          <Card style={styles.inputCard}>
-            <View style={styles.row}>
-              <View style={styles.half}>
-                <Text style={[styles.label, { color: colors.foreground }]}>Balance Owed</Text>
-                <View style={[styles.inputWrap, { borderColor: colors.border }]}>
-                  <Text style={[styles.prefix, { color: colors.mutedForeground }]}>$</Text>
-                  <TextInput
-                    value={balance}
-                    onChangeText={(value) => setBalance(formatMoneyInput(value))}
-                    keyboardType="numeric"
-                    style={[styles.input, { color: colors.foreground }]}
-                  />
-                </View>
+          <Card style={styles.summaryCard}>
+            <View>
+              <Text style={[styles.programTitle, { color: colors.foreground }]}>
+                {programName}
+              </Text>
+              <Text style={[styles.summaryHint, { color: colors.mutedForeground }]}>
+                Aggregate plan based on your current creditors
+              </Text>
+            </View>
+
+            <View style={styles.programMetaRow}>
+              <View style={[styles.rateBadge, { backgroundColor: colors.secondary }]}>
+                <Text style={[styles.rateBadgeText, { color: colors.primary }]}>50% target</Text>
               </View>
-              <View style={styles.half}>
-                <Text style={[styles.label, { color: colors.foreground }]}>Settlement %</Text>
-                <View style={[styles.inputWrap, { borderColor: colors.border }]}>
-                  <TextInput
-                    value={pct}
-                    onChangeText={setPct}
-                    keyboardType="numeric"
-                    style={[styles.input, { color: colors.foreground }]}
-                    maxLength={2}
-                  />
-                  <Text style={[styles.suffix, { color: colors.mutedForeground }]}>%</Text>
-                </View>
+              <Text style={[styles.metaText, { color: colors.mutedForeground }]}>
+                Estimated settlement target
+              </Text>
+            </View>
+
+            <View style={styles.statGrid}>
+              <View style={[styles.statTile, { backgroundColor: colors.secondary }]}>
+                <Text style={[styles.statLabel, { color: colors.mutedForeground }]}>Total Debt</Text>
+                <Text style={[styles.statValue, { color: colors.foreground }]}>
+                  {formatCurrency(program.totalDebt)}
+                </Text>
+              </View>
+              <View style={[styles.statTile, { backgroundColor: colors.secondary }]}>
+                <Text style={[styles.statLabel, { color: colors.mutedForeground }]}>
+                  Estimated Settlement
+                </Text>
+                <Text style={[styles.statValue, { color: colors.primary }]}>
+                  {formatCurrency(program.estimatedSettlementAmount)}
+                </Text>
+              </View>
+              <View style={[styles.statTile, { backgroundColor: colors.secondary }]}>
+                <Text style={[styles.statLabel, { color: colors.mutedForeground }]}>
+                  Monthly Savings
+                </Text>
+                <Text style={[styles.statValue, { color: colors.foreground }]}>
+                  {formatCurrency(program.monthlySavingsAmount)}
+                </Text>
+              </View>
+              <View style={[styles.statTile, { backgroundColor: colors.secondary }]}>
+                <Text style={[styles.statLabel, { color: colors.mutedForeground }]}>
+                  Program Length
+                </Text>
+                <Text style={[styles.statValue, { color: colors.foreground }]}>
+                  {program.programLengthMonths > 0 ? `${program.programLengthMonths} months` : "—"}
+                </Text>
               </View>
             </View>
-            {bal > 0 && (
-              <Text style={[styles.target, { color: colors.primary }]}>
-                Settlement target: {formatCurrency(settlementTarget)}
+
+            <Pressable
+              onPress={() => router.push("/profile")}
+              style={({ pressed }) => [
+                styles.inlineLink,
+                { borderColor: colors.border, opacity: pressed ? 0.7 : 1 },
+              ]}
+            >
+              <Text style={[styles.inlineLinkText, { color: colors.foreground }]}>
+                Need to change your monthly savings amount?
               </Text>
-            )}
+              <Feather name="chevron-right" size={16} color={colors.mutedForeground} />
+            </Pressable>
           </Card>
 
-          {bal > 0 && settlementTarget > 0 && (
-            <>
+          <Card style={styles.disclosureCard}>
+            <View style={styles.disclosureHeader}>
+              <Feather name="shield" size={18} color={colors.primary} />
               <Text style={[styles.sectionTitle, { color: colors.foreground }]}>
-                Monthly Savings Scenarios
+                Savings Disclosure
               </Text>
-              {MONTHLY_OPTIONS.map((mo) => {
-                const months = Math.ceil(settlementTarget / mo);
-                const years = (months / 12).toFixed(1);
-                const progress = Math.min(1, mo / settlementTarget);
+            </View>
+            <Text style={[styles.disclosureText, { color: colors.foreground }]}>
+              {DISCLOSURE_COPY}
+            </Text>
+            <Pressable
+              onPress={handleAcceptDisclosure}
+              style={({ pressed }) => [
+                styles.checkboxRow,
+                { opacity: pressed ? 0.75 : 1 },
+              ]}
+            >
+              <View
+                style={[
+                  styles.checkbox,
+                  {
+                    backgroundColor: trackerEnabled ? colors.success : "transparent",
+                    borderColor: trackerEnabled ? colors.success : colors.border,
+                  },
+                ]}
+              >
+                {trackerEnabled && <Feather name="check" size={14} color={colors.successForeground} />}
+              </View>
+              <Text style={[styles.checkboxLabel, { color: colors.foreground }]}>
+                I have read and understand the savings disclosure.
+              </Text>
+            </Pressable>
+          </Card>
 
+          {program.monthlySavingsAmount <= 0 ? (
+            <Card style={styles.noticeCard}>
+              <Text style={[styles.noticeTitle, { color: colors.foreground }]}>
+                Monthly savings amount required
+              </Text>
+              <Text style={[styles.noticeText, { color: colors.mutedForeground }]}>
+                Add a monthly savings amount in your profile to generate the tracker timeline.
+              </Text>
+            </Card>
+          ) : !trackerEnabled ? (
+            <Card style={styles.noticeCard}>
+              <Text style={[styles.noticeTitle, { color: colors.foreground }]}>
+                Tracker locked until disclosure is accepted
+              </Text>
+              <Text style={[styles.noticeText, { color: colors.mutedForeground }]}>
+                Check the disclosure above to start tracking Month 1 through Month{" "}
+                {program.programLengthMonths}.
+              </Text>
+            </Card>
+          ) : (
+            <>
+              <Card>
+                <View style={styles.progressHeader}>
+                  <View>
+                    <Text style={[styles.sectionTitle, { color: colors.foreground }]}>
+                      Monthly Savings Tracker
+                    </Text>
+                    <Text style={[styles.progressSubtext, { color: colors.mutedForeground }]}>
+                      Mark each month after you&apos;ve completed that month&apos;s savings goal.
+                    </Text>
+                  </View>
+                </View>
+                <Text style={[styles.progressCount, { color: colors.primary }]}>
+                  {completedMonths}/{trackerMonths.length} months saved
+                </Text>
+                <ProgressBar progress={trackerProgress} height={8} />
+              </Card>
+
+              {trackerMonths.map((month) => {
+                const saved = month.status === "saved";
                 return (
-                  <Card key={mo} style={styles.scenarioCard}>
-                    <View style={styles.scenarioHeader}>
-                      <Text style={[styles.moAmount, { color: colors.primary }]}>
-                        {formatCurrency(mo)}/mo
-                      </Text>
-                      <View style={styles.timeline}>
-                        <Text style={[styles.months, { color: colors.foreground }]}>
-                          {months} months
+                  <Pressable
+                    key={month.id}
+                    onPress={() => handleToggleMonth(month.id, !saved)}
+                    style={({ pressed }) => [{ opacity: pressed ? 0.75 : 1 }]}
+                  >
+                    <Card style={styles.monthCard}>
+                      <View
+                        style={[
+                          styles.monthCheckbox,
+                          {
+                            backgroundColor: saved ? colors.success : "transparent",
+                            borderColor: saved ? colors.success : colors.border,
+                          },
+                        ]}
+                      >
+                        {saved && (
+                          <Feather name="check" size={16} color={colors.successForeground} />
+                        )}
+                      </View>
+
+                      <View style={styles.monthContent}>
+                        <Text style={[styles.monthTitle, { color: colors.foreground }]}>
+                          Month {month.monthIndex}
                         </Text>
-                        <Text style={[styles.years, { color: colors.mutedForeground }]}>
-                          ({years} yrs)
+                        <Text style={[styles.monthAmount, { color: colors.mutedForeground }]}>
+                          Save {formatCurrency(month.monthlyAmount)}
                         </Text>
                       </View>
-                    </View>
-                    <ProgressBar progress={progress} height={6} />
-                    <Text style={[styles.scenarioNote, { color: colors.mutedForeground }]}>
-                      {months <= 6
-                        ? "Excellent — aggressive savings plan"
-                        : months <= 12
-                          ? "Good — achievable within a year"
-                          : months <= 24
-                            ? "Moderate — solid 1-2 year plan"
-                            : "Long-term — consider a higher monthly amount"}
-                    </Text>
-                  </Card>
+
+                      <View style={styles.monthStatus}>
+                        <Text
+                          style={[
+                            styles.monthStatusText,
+                            { color: saved ? colors.success : colors.mutedForeground },
+                          ]}
+                        >
+                          {saved ? "Saved" : "Pending"}
+                        </Text>
+                        <Feather name="chevron-right" size={16} color={colors.mutedForeground} />
+                      </View>
+                    </Card>
+                  </Pressable>
                 );
               })}
             </>
           )}
-
-          <Text style={[styles.disclaimer, { color: colors.mutedForeground }]}>
-            SLICE estimates are for planning purposes only. Actual settlement terms depend on
-            negotiation with each creditor.
-          </Text>
         </ScrollView>
-      </KeyboardAvoidingView>
+      )}
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   safe: { flex: 1 },
+  loadingState: { flex: 1, alignItems: "center", justifyContent: "center" },
   scroll: { padding: 16, gap: 12 },
   subtitle: { fontSize: 13, fontFamily: "Inter_400Regular", lineHeight: 20 },
-  inputCard: { gap: 12 },
-  row: { flexDirection: "row", gap: 12 },
-  half: { flex: 1, gap: 6 },
-  label: { fontSize: 13, fontFamily: "Inter_600SemiBold" },
-  inputWrap: {
+  summaryCard: { gap: 14 },
+  sectionTitle: { fontSize: 15, fontFamily: "Inter_700Bold" },
+  programTitle: { fontSize: 20, fontFamily: "Inter_700Bold", lineHeight: 26 },
+  summaryHint: { fontSize: 12, fontFamily: "Inter_400Regular", marginTop: 2 },
+  programMetaRow: { flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 8 },
+  rateBadge: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999 },
+  rateBadgeText: { fontSize: 12, fontFamily: "Inter_700Bold" },
+  metaText: { fontSize: 12, fontFamily: "Inter_400Regular" },
+  statGrid: { gap: 10 },
+  statTile: { borderRadius: 12, padding: 14, gap: 4 },
+  statLabel: { fontSize: 12, fontFamily: "Inter_400Regular" },
+  statValue: { fontSize: 20, fontFamily: "Inter_700Bold" },
+  inlineLink: {
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
     flexDirection: "row",
     alignItems: "center",
-    borderWidth: 1,
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    height: 46,
+    gap: 8,
   },
-  prefix: { fontSize: 15, fontFamily: "Inter_600SemiBold", marginRight: 4 },
-  suffix: { fontSize: 15, fontFamily: "Inter_600SemiBold", marginLeft: 4 },
-  input: { flex: 1, fontSize: 15, fontFamily: "Inter_400Regular" },
-  target: { fontSize: 14, fontFamily: "Inter_600SemiBold" },
-  sectionTitle: { fontSize: 15, fontFamily: "Inter_700Bold" },
-  scenarioCard: { gap: 8 },
-  scenarioHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  moAmount: { fontSize: 16, fontFamily: "Inter_700Bold" },
-  timeline: { alignItems: "flex-end" },
-  months: { fontSize: 15, fontFamily: "Inter_700Bold" },
-  years: { fontSize: 12, fontFamily: "Inter_400Regular" },
-  scenarioNote: { fontSize: 12, fontFamily: "Inter_400Regular", fontStyle: "italic" },
-  disclaimer: { fontSize: 11, fontFamily: "Inter_400Regular", textAlign: "center", lineHeight: 16 },
+  inlineLinkText: { flex: 1, fontSize: 13, fontFamily: "Inter_600SemiBold" },
+  disclosureCard: { gap: 12 },
+  disclosureHeader: { flexDirection: "row", alignItems: "center", gap: 8 },
+  disclosureText: { fontSize: 13, fontFamily: "Inter_400Regular", lineHeight: 20 },
+  checkboxRow: { flexDirection: "row", alignItems: "center", gap: 12 },
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderRadius: 7,
+    borderWidth: 1.5,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  checkboxLabel: { flex: 1, fontSize: 13, fontFamily: "Inter_600SemiBold", lineHeight: 20 },
+  noticeCard: { gap: 6 },
+  noticeTitle: { fontSize: 14, fontFamily: "Inter_700Bold" },
+  noticeText: { fontSize: 12, fontFamily: "Inter_400Regular", lineHeight: 18 },
+  progressHeader: { marginBottom: 8 },
+  progressSubtext: { fontSize: 12, fontFamily: "Inter_400Regular", marginTop: 2 },
+  progressCount: { fontSize: 14, fontFamily: "Inter_700Bold", marginBottom: 10 },
+  monthCard: { flexDirection: "row", alignItems: "center", gap: 14 },
+  monthCheckbox: {
+    width: 30,
+    height: 30,
+    borderRadius: 9,
+    borderWidth: 1.5,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  monthContent: { flex: 1, gap: 2 },
+  monthTitle: { fontSize: 15, fontFamily: "Inter_700Bold" },
+  monthAmount: { fontSize: 12, fontFamily: "Inter_400Regular" },
+  monthStatus: { flexDirection: "row", alignItems: "center", gap: 4 },
+  monthStatusText: { fontSize: 12, fontFamily: "Inter_700Bold" },
 });
