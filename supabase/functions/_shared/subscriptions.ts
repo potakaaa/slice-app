@@ -24,6 +24,13 @@ export function tierFromRevenueCat(value?: string | null): Tier {
   return "free";
 }
 
+export function highestTierFromRevenueCat(values: string[]): Tier {
+  return values.reduce<Tier>((highest, value) => {
+    const candidate = tierFromRevenueCat(value);
+    return rank[candidate] > rank[highest] ? candidate : highest;
+  }, "free");
+}
+
 export async function getTier(client: SupabaseClient, userId: string): Promise<Tier> {
   const { data, error } = await client
     .from("profiles")

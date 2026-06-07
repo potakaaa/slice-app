@@ -13,7 +13,12 @@ import {
 
 import { Card } from "@/components/Card";
 import { useColors } from "@/hooks/useColors";
-import { formatCurrency, formatPct } from "@/utils/calculations";
+import {
+  formatCurrency,
+  formatMoneyInput,
+  formatPct,
+  parseMoneyInput,
+} from "@/utils/calculations";
 
 const PERCENTAGES = [0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7];
 
@@ -24,8 +29,8 @@ export default function CalculatorScreen() {
   const topPad = Platform.OS === "web" ? 67 : 0;
   const bottomPad = Platform.OS === "web" ? 34 : 20;
 
-  const bal = Number(balance);
-  const mo = Number(monthly);
+  const bal = parseMoneyInput(balance);
+  const mo = parseMoneyInput(monthly);
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: colors.background, paddingTop: topPad }]}>
@@ -50,7 +55,7 @@ export default function CalculatorScreen() {
                 <Text style={[styles.dollar, { color: colors.mutedForeground }]}>$</Text>
                 <TextInput
                   value={balance}
-                  onChangeText={setBalance}
+                  onChangeText={(value) => setBalance(formatMoneyInput(value))}
                   placeholder="10,000"
                   placeholderTextColor={colors.mutedForeground}
                   keyboardType="numeric"
@@ -64,7 +69,7 @@ export default function CalculatorScreen() {
                 <Text style={[styles.dollar, { color: colors.mutedForeground }]}>$</Text>
                 <TextInput
                   value={monthly}
-                  onChangeText={setMonthly}
+                  onChangeText={(value) => setMonthly(formatMoneyInput(value))}
                   placeholder="500"
                   placeholderTextColor={colors.mutedForeground}
                   keyboardType="numeric"

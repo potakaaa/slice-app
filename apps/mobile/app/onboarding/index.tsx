@@ -26,7 +26,7 @@ export default function OnboardingWelcome() {
   return (
     <View style={styles.container}>
       <LinearGradient
-        colors={["#FF6B35", "#FF8055"]}
+        colors={["#FF5A00", "#FF8A00"]}
         style={StyleSheet.absoluteFill}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
@@ -43,7 +43,7 @@ export default function OnboardingWelcome() {
             {FEATURES.map((item, i) => (
               <View key={i} style={styles.feature}>
                 <View style={styles.featureIcon}>
-                  <Feather name={item.icon} size={16} color="rgba(255,255,255,0.9)" />
+                  <Feather name={item.icon} size={16} color="#FFFFFF" />
                 </View>
                 <Text style={styles.featureText} numberOfLines={1}>{item.text}</Text>
               </View>
@@ -55,7 +55,7 @@ export default function OnboardingWelcome() {
               label="Get Started — It's Free"
               onPress={() => router.push("/onboarding/step1")}
               style={styles.cta}
-              textColor="#FF6B35"
+              textColor="#FF5A00"
               fullWidth
             />
             <Text style={styles.disclaimer}>
@@ -92,7 +92,7 @@ const styles = StyleSheet.create({
   tagline: {
     fontSize: 17,
     fontFamily: "Inter_400Regular",
-    color: "rgba(255,255,255,0.85)",
+    color: "#FFFFFF",
     textAlign: "center",
     lineHeight: 25,
   },
@@ -114,7 +114,7 @@ const styles = StyleSheet.create({
   featureText: {
     color: "#FFFFFF",
     fontSize: 15,
-    fontFamily: "Inter_500Medium",
+    fontFamily: "Inter_600SemiBold",
     flex: 1,
     flexShrink: 1,
   },
@@ -122,8 +122,8 @@ const styles = StyleSheet.create({
   cta: { backgroundColor: "#FFFFFF" },
   disclaimer: {
     textAlign: "center",
-    color: "rgba(255,255,255,0.65)",
+    color: "#FFFFFF",
     fontSize: 12,
-    fontFamily: "Inter_400Regular",
+    fontFamily: "Inter_600SemiBold",
   },
 });

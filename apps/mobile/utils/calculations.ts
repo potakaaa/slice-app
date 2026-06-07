@@ -29,6 +29,30 @@ export function formatCurrency(amount: number): string {
   }).format(amount);
 }
 
+export type MoneyInputValue = {
+  formatted: string;
+  value: number;
+};
+
+export function parseMoneyInput(input: string): number {
+  const digits = input.replace(/\D/g, "");
+  return digits ? Number(digits) : 0;
+}
+
+export function formatMoneyInput(input: string | number): string {
+  const value =
+    typeof input === "number" ? Math.max(0, Math.trunc(input)) : parseMoneyInput(input);
+  return value > 0 ? value.toLocaleString("en-US") : "";
+}
+
+export function normalizeMoneyInput(input: string): MoneyInputValue {
+  const value = parseMoneyInput(input);
+  return {
+    formatted: value > 0 ? value.toLocaleString("en-US") : "",
+    value,
+  };
+}
+
 export function formatPct(decimal: number): string {
   return `${Math.round(decimal * 100)}%`;
 }

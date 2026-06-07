@@ -4,6 +4,7 @@ import React, { useEffect } from "react";
 import {
   Platform,
   SafeAreaView,
+  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -12,6 +13,7 @@ import * as Haptics from "expo-haptics";
 
 import { Button } from "@/components/Button";
 import { SliceLogo } from "@/components/SliceLogo";
+import { useAuth } from "@/lib/auth";
 import { useCreateCreditor, useUpsertProfile } from "@/lib/sliceData";
 import { useAppStore } from "@/store/useAppStore";
 import {
@@ -22,9 +24,10 @@ import {
 } from "@/utils/calculations";
 
 export default function OnboardingComplete() {
+  const { session } = useAuth();
   const creditors = useAppStore((s) => s.creditors);
   const profile = useAppStore((s) => s.profile);
-  const resetDraft = useAppStore((s) => s.resetApp);
+  const clearDraft = useAppStore((s) => s.clearDraft);
   const createCreditor = useCreateCreditor();
   const upsertProfile = useUpsertProfile();
 
@@ -34,10 +37,18 @@ export default function OnboardingComplete() {
   const months = getMaxProgramLength(creditors);
 
   useEffect(() => {
+    if (!session) {
+      router.replace("/auth");
+      return;
+    }
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-  }, []);
+  }, [session]);
 
   const handleStart = async () => {
+    if (!session) {
+      router.replace("/auth");
+      return;
+    }
     await upsertProfile.mutateAsync({
       ...profile,
       onboardingComplete: true,
@@ -54,7 +65,7 @@ export default function OnboardingComplete() {
         priority: index + 1,
       });
     }
-    resetDraft();
+    clearDraft();
     router.replace("/(tabs)");
   };
 
@@ -63,13 +74,16 @@ export default function OnboardingComplete() {
   return (
     <View style={styles.container}>
       <LinearGradient
-        colors={["#FF6B35", "#FF8C5A"]}
+        colors={["#FF5A00", "#FF8A00"]}
         style={StyleSheet.absoluteFill}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
       />
       <SafeAreaView style={[styles.safe, { paddingTop: topPad }]}>
-        <View style={styles.content}>
+        <ScrollView
+          contentContainerStyle={styles.content}
+          showsVerticalScrollIndicator={false}
+        >
           <View style={styles.top}>
             <SliceLogo size={80} />
             <Text style={styles.congrats}>Your Program Is Ready!</Text>
@@ -128,7 +142,7 @@ export default function OnboardingComplete() {
               label="Start My Program"
               onPress={handleStart}
               style={styles.cta}
-              textColor="#FF6B35"
+              textColor="#FF5A00"
               loading={upsertProfile.isPending || createCreditor.isPending}
               fullWidth
             />
@@ -136,7 +150,7 @@ export default function OnboardingComplete() {
               Results are estimates. SLICE does not guarantee settlement outcomes.
             </Text>
           </View>
-        </View>
+        </ScrollView>
       </SafeAreaView>
     </View>
   );
@@ -146,66 +160,78 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   safe: { flex: 1 },
   content: {
-    flex: 1,
-    paddingHorizontal: 28,
-    paddingVertical: 20,
-    justifyContent: "space-between",
+    flexGrow: 1,
+    paddingHorizontal: 24,
+    paddingTop: 28,
+    paddingBottom: Platform.OS === "web" ? 40 : 28,
+    gap: 24,
   },
-  top: { alignItems: "center", gap: 12, paddingTop: 16 },
+  top: { alignItems: "center", gap: 14 },
   congrats: {
     fontSize: 28,
     fontFamily: "Inter_700Bold",
     color: "#FFFFFF",
     textAlign: "center",
+    lineHeight: 36,
   },
   name: {
     fontSize: 16,
-    fontFamily: "Inter_400Regular",
-    color: "rgba(255,255,255,0.9)",
+    fontFamily: "Inter_600SemiBold",
+    color: "#FFFFFF",
+    lineHeight: 24,
+    textAlign: "center",
   },
   stats: {
-    flexDirection: "row",
+    gap: 0,
     backgroundColor: "rgba(255,255,255,0.15)",
     borderRadius: 16,
-    padding: 20,
-    alignItems: "center",
+    paddingHorizontal: 20,
+    paddingVertical: 8,
   },
-  statCard: { flex: 1, alignItems: "center", gap: 4 },
+  statCard: {
+    minHeight: 64,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 16,
+  },
   statValue: {
     fontSize: 18,
     fontFamily: "Inter_700Bold",
     color: "#FFFFFF",
   },
-  savingsValue: { color: "#DCFCE7" },
+  savingsValue: { color: "#FFFFFF" },
   statLabel: {
     fontSize: 11,
-    fontFamily: "Inter_400Regular",
-    color: "rgba(255,255,255,0.75)",
-    textAlign: "center",
+    color: "#FFFFFF",
+    fontFamily: "Inter_600SemiBold",
+    textAlign: "right",
   },
   divider: {
-    width: 1,
-    height: 40,
+    width: "100%",
+    height: 1,
     backgroundColor: "rgba(255,255,255,0.3)",
   },
   timeline: {
     alignItems: "center",
     backgroundColor: "rgba(255,255,255,0.15)",
     borderRadius: 12,
-    padding: 16,
+    padding: 20,
+    gap: 4,
   },
   timelineText: {
-    color: "rgba(255,255,255,0.85)",
+    color: "#FFFFFF",
     fontSize: 13,
-    fontFamily: "Inter_400Regular",
+    fontFamily: "Inter_600SemiBold",
+    lineHeight: 20,
   },
   timelineMonths: {
     color: "#FFFFFF",
     fontSize: 32,
     fontFamily: "Inter_700Bold",
   },
-  bullets: { gap: 10 },
-  bullet: { flexDirection: "row", gap: 10, alignItems: "flex-start" },
+  bullets: { gap: 14, paddingHorizontal: 2 },
+  bullet: { flexDirection: "row", gap: 12, alignItems: "flex-start" },
   bulletDot: {
     color: "#FFFFFF",
     fontSize: 15,
@@ -213,18 +239,19 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   bulletText: {
-    color: "rgba(255,255,255,0.9)",
+    color: "#FFFFFF",
     fontSize: 14,
-    fontFamily: "Inter_400Regular",
+    fontFamily: "Inter_600SemiBold",
     flex: 1,
-    lineHeight: 22,
+    lineHeight: 23,
   },
-  bottom: { gap: 10, paddingBottom: Platform.OS === "web" ? 34 : 0 },
+  bottom: { gap: 12, marginTop: "auto", paddingTop: 4 },
   cta: { backgroundColor: "#FFFFFF" },
   disclaimer: {
     textAlign: "center",
-    color: "rgba(255,255,255,0.6)",
+    color: "#FFFFFF",
     fontSize: 11,
-    fontFamily: "Inter_400Regular",
+    fontFamily: "Inter_600SemiBold",
+    lineHeight: 17,
   },
 });

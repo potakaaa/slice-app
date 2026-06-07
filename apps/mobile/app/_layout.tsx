@@ -16,6 +16,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AuthProvider } from "@/lib/auth";
+import { RevenueCatProvider } from "@/lib/revenueCat";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -23,7 +24,7 @@ const queryClient = new QueryClient();
 
 function RootLayoutNav() {
   return (
-    <Stack screenOptions={{ headerBackTitle: "Back", headerTintColor: "#FF6B35", headerBackVisible: Platform.OS !== "ios" }}>
+    <Stack screenOptions={{ headerBackTitle: "Back", headerTintColor: "#FF5A00", headerBackVisible: Platform.OS !== "ios" }}>
       <Stack.Screen name="index" options={{ headerShown: false }} />
       <Stack.Screen name="auth" options={{ headerShown: false }} />
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
@@ -72,15 +73,17 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <ErrorBoundary>
-        <AuthProvider>
-          <QueryClientProvider client={queryClient}>
-            <GestureHandlerRootView>
-              <KeyboardProvider>
-                <RootLayoutNav />
-              </KeyboardProvider>
-            </GestureHandlerRootView>
-          </QueryClientProvider>
-        </AuthProvider>
+        <QueryClientProvider client={queryClient}>
+          <AuthProvider>
+            <RevenueCatProvider>
+              <GestureHandlerRootView>
+                <KeyboardProvider>
+                  <RootLayoutNav />
+                </KeyboardProvider>
+              </GestureHandlerRootView>
+            </RevenueCatProvider>
+          </AuthProvider>
+        </QueryClientProvider>
       </ErrorBoundary>
     </SafeAreaProvider>
   );

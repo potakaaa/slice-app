@@ -1,5 +1,5 @@
 import { Feather } from "@expo/vector-icons";
-import React from "react";
+import React, { useState } from "react";
 import {
   Platform,
   Pressable,
@@ -13,6 +13,9 @@ import {
 
 import { Card } from "@/components/Card";
 import { useColors } from "@/hooks/useColors";
+import { integrationMessage } from "@/lib/integrationErrors";
+import { useRevenueCat } from "@/lib/revenueCat";
+import type { PaidTier } from "@/lib/revenueCatUtils";
 import { useProfile } from "@/lib/sliceData";
 import type { SubscriptionTier } from "@/types";
 
@@ -95,19 +98,56 @@ const PLANS: PlanConfig[] = [
 export default function PricingScreen() {
   const colors = useColors();
   const { profile } = useProfile();
+  const revenueCat = useRevenueCat();
+  const [activeAction, setActiveAction] = useState<SubscriptionTier | "restore" | "manage" | null>(null);
+  const [actionError, setActionError] = useState("");
 
   const topPad = Platform.OS === "web" ? 67 : 0;
   const bottomPad = Platform.OS === "web" ? 34 : 20;
 
-  const handleUpgrade = (plan: PlanConfig) => {
+  const handleUpgrade = async (plan: PlanConfig) => {
     if (plan.tier === profile.tier) return;
-    Alert.alert(
-      `Upgrade to ${plan.name}`,
-      `${plan.name} plan is ${plan.price}/${plan.period}. In-app purchases are managed by RevenueCat and will sync to your SLICE account when enabled.`,
-      [
-        { text: "OK", style: "default" },
-      ]
-    );
+    setActiveAction(plan.tier);
+    setActionError("");
+    try {
+      if (plan.tier === "free") {
+        await revenueCat.manage();
+        return;
+      }
+      const result = await revenueCat.purchase(plan.tier as PaidTier);
+      if (!result.cancelled) {
+        Alert.alert("Subscription Updated", `${plan.name} access is now syncing to your SLICE account.`);
+      }
+    } catch (error) {
+      setActionError(integrationMessage(error, "The subscription action could not be completed."));
+    } finally {
+      setActiveAction(null);
+    }
+  };
+
+  const handleRestore = async () => {
+    setActiveAction("restore");
+    setActionError("");
+    try {
+      await revenueCat.restore();
+      Alert.alert("Purchases Restored", "Your subscription access has been refreshed.");
+    } catch (error) {
+      setActionError(integrationMessage(error, "Purchases could not be restored."));
+    } finally {
+      setActiveAction(null);
+    }
+  };
+
+  const handleManage = async () => {
+    setActiveAction("manage");
+    setActionError("");
+    try {
+      await revenueCat.manage();
+    } catch (error) {
+      setActionError(integrationMessage(error, "Subscription management could not be opened."));
+    } finally {
+      setActiveAction(null);
+    }
   };
 
   return (
@@ -131,8 +171,33 @@ export default function PricingScreen() {
           </Text>
         </View>
 
+        {!revenueCat.available && (
+          <Card style={[styles.integrationNotice, { borderColor: colors.primary }]}>
+            <Feather name="info" size={18} color={colors.primary} />
+            <Text style={[styles.integrationNoticeText, { color: colors.foreground }]}>
+              Real purchases require an iOS or Android development build. Expo Go and web can preview this screen only.
+            </Text>
+          </Card>
+        )}
+
+        {(actionError || revenueCat.error) && (
+          <Card style={[styles.errorCard, { borderColor: colors.destructive }]}>
+            <Text style={[styles.errorText, { color: colors.destructive }]}>
+              {actionError || integrationMessage(revenueCat.error, "Subscription products could not be loaded.")}
+            </Text>
+            {revenueCat.available && (
+              <Pressable onPress={() => revenueCat.refresh()}>
+                <Text style={[styles.retryText, { color: colors.primary }]}>Retry</Text>
+              </Pressable>
+            )}
+          </Card>
+        )}
+
         {PLANS.map((plan) => {
           const isCurrent = profile.tier === plan.tier;
+          const storePackage = plan.tier === "free" ? undefined : revenueCat.packages[plan.tier];
+          const displayPrice = storePackage?.product.priceString ?? plan.price;
+          const packageUnavailable = plan.tier !== "free" && revenueCat.configured && !storePackage;
           return (
             <View
               key={plan.tier}
@@ -161,7 +226,7 @@ export default function PricingScreen() {
                   <Text style={[styles.planName, { color: plan.color }]}>{plan.name}</Text>
                   <View style={styles.priceRow}>
                     <Text style={[styles.planPrice, { color: colors.foreground }]}>
-                      {plan.price}
+                      {displayPrice}
                     </Text>
                     <Text style={[styles.planPeriod, { color: colors.mutedForeground }]}>
                       /{plan.period}
@@ -186,10 +251,25 @@ export default function PricingScreen() {
 
               <Pressable
                 onPress={() => handleUpgrade(plan)}
+                disabled={
+                  isCurrent ||
+                  activeAction !== null ||
+                  revenueCat.loading ||
+                  !revenueCat.available ||
+                  packageUnavailable
+                }
                 style={[
                   styles.upgradeBtn,
                   {
                     backgroundColor: isCurrent ? colors.muted : plan.color,
+                    opacity:
+                      isCurrent ||
+                      activeAction !== null ||
+                      revenueCat.loading ||
+                      !revenueCat.available ||
+                      packageUnavailable
+                        ? 0.55
+                        : 1,
                   },
                 ]}
               >
@@ -199,16 +279,45 @@ export default function PricingScreen() {
                     { color: isCurrent ? colors.mutedForeground : "#FFFFFF" },
                   ]}
                 >
-                  {isCurrent ? "Current Plan" : plan.tier === "free" ? "Downgrade to Free" : `Upgrade to ${plan.name}`}
+                  {activeAction === plan.tier
+                    ? "Processing..."
+                    : isCurrent
+                      ? "Current Plan"
+                      : packageUnavailable
+                        ? "Unavailable"
+                        : plan.tier === "free"
+                          ? "Manage Paid Plan"
+                          : `Choose ${plan.name}`}
                 </Text>
               </Pressable>
             </View>
           );
         })}
 
+        <View style={styles.subscriptionActions}>
+          <Pressable
+            onPress={handleRestore}
+            disabled={activeAction !== null || !revenueCat.available}
+          >
+            <Text style={[styles.subscriptionLink, { color: colors.primary }]}>
+              {activeAction === "restore" ? "Restoring..." : "Restore Purchases"}
+            </Text>
+          </Pressable>
+          {profile.tier !== "free" && (
+            <Pressable
+              onPress={handleManage}
+              disabled={activeAction !== null || !revenueCat.available}
+            >
+              <Text style={[styles.subscriptionLink, { color: colors.primary }]}>
+                {activeAction === "manage" ? "Opening..." : "Manage Subscription"}
+              </Text>
+            </Pressable>
+          )}
+        </View>
+
         <Text style={[styles.disclaimer, { color: colors.mutedForeground }]}>
-          Subscription pricing shown is for illustration. Actual billing will be handled via
-          RevenueCat / App Store. Cancel anytime. SLICE does not guarantee debt settlement results.
+          Store pricing is loaded through RevenueCat when available. Billing and cancellation are
+          handled by Apple App Store or Google Play. SLICE does not guarantee debt settlement results.
         </Text>
       </ScrollView>
     </SafeAreaView>
@@ -228,6 +337,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   currentText: { fontSize: 14, fontFamily: "Inter_500Medium" },
+  integrationNotice: { flexDirection: "row", alignItems: "flex-start", gap: 10, borderWidth: 1 },
+  integrationNoticeText: { flex: 1, fontSize: 12, fontFamily: "Inter_500Medium", lineHeight: 18 },
+  errorCard: { borderWidth: 1, gap: 8 },
+  errorText: { fontSize: 12, fontFamily: "Inter_500Medium", lineHeight: 18 },
+  retryText: { fontSize: 13, fontFamily: "Inter_700Bold" },
   planCard: {
     borderRadius: 16,
     padding: 20,
@@ -259,5 +373,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   upgradeBtnText: { fontSize: 14, fontFamily: "Inter_600SemiBold" },
+  subscriptionActions: { flexDirection: "row", justifyContent: "center", gap: 20 },
+  subscriptionLink: { fontSize: 13, fontFamily: "Inter_700Bold" },
   disclaimer: { fontSize: 11, fontFamily: "Inter_400Regular", textAlign: "center", lineHeight: 16 },
 });

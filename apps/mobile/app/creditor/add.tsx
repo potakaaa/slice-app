@@ -16,7 +16,11 @@ import {
 import { Button } from "@/components/Button";
 import { useColors } from "@/hooks/useColors";
 import { useCreateCreditor, useCreditors, useProfile } from "@/lib/sliceData";
-import { formatCurrency } from "@/utils/calculations";
+import {
+  formatCurrency,
+  formatMoneyInput,
+  parseMoneyInput,
+} from "@/utils/calculations";
 
 const SETTLEMENT_OPTIONS = [0.3, 0.4, 0.5, 0.6, 0.7];
 
@@ -31,14 +35,16 @@ export default function AddCreditorScreen() {
   const [balance, setBalance] = useState("");
   const [settlementPct, setSettlementPct] = useState(profile.defaultSettlementPercentage);
   const [monthlySavings, setMonthlySavings] = useState(
-    String(profile.defaultMonthlySavings)
+    formatMoneyInput(profile.defaultMonthlySavings)
   );
 
-  const canSave = name.trim().length > 0 && Number(balance) > 0;
-  const settled = Number(balance) * settlementPct;
+  const balanceValue = parseMoneyInput(balance);
+  const monthlySavingsValue = parseMoneyInput(monthlySavings);
+  const canSave = name.trim().length > 0 && balanceValue > 0;
+  const settled = balanceValue * settlementPct;
   const months =
-    Number(monthlySavings) > 0
-      ? Math.ceil(settled / Number(monthlySavings))
+    monthlySavingsValue > 0
+      ? Math.ceil(settled / monthlySavingsValue)
       : 0;
 
   const topPad = Platform.OS === "web" ? 67 : 0;
@@ -47,9 +53,9 @@ export default function AddCreditorScreen() {
     await createCreditor.mutateAsync({
       name: name.trim(),
       phone: phone.trim(),
-      balance: Number(balance),
+      balance: balanceValue,
       settlementPercentage: settlementPct,
-      monthlySavings: Number(monthlySavings),
+      monthlySavings: monthlySavingsValue,
       priority: creditors.length + 1,
     });
     router.back();
@@ -103,7 +109,7 @@ export default function AddCreditorScreen() {
                 <Text style={[styles.dollar, { color: colors.mutedForeground }]}>$</Text>
                 <TextInput
                   value={balance}
-                  onChangeText={setBalance}
+                  onChangeText={(value) => setBalance(formatMoneyInput(value))}
                   placeholder="10,000"
                   placeholderTextColor={colors.mutedForeground}
                   keyboardType="numeric"
@@ -157,7 +163,9 @@ export default function AddCreditorScreen() {
                 <Text style={[styles.dollar, { color: colors.mutedForeground }]}>$</Text>
                 <TextInput
                   value={monthlySavings}
-                  onChangeText={setMonthlySavings}
+                  onChangeText={(value) =>
+                    setMonthlySavings(formatMoneyInput(value))
+                  }
                   placeholder="500"
                   placeholderTextColor={colors.mutedForeground}
                   keyboardType="numeric"
@@ -168,7 +176,7 @@ export default function AddCreditorScreen() {
             </View>
 
             {/* Preview */}
-            {Number(balance) > 0 && (
+            {balanceValue > 0 && (
               <View style={[styles.preview, { backgroundColor: colors.secondary, borderColor: colors.primary }]}>
                 <Text style={[styles.previewTitle, { color: colors.primary }]}>
                   Program Preview
@@ -177,7 +185,7 @@ export default function AddCreditorScreen() {
                   <View style={styles.previewItem}>
                     <Text style={[styles.previewLabel, { color: colors.mutedForeground }]}>Owed</Text>
                     <Text style={[styles.previewValue, { color: colors.foreground }]}>
-                      {formatCurrency(Number(balance))}
+                      {formatCurrency(balanceValue)}
                     </Text>
                   </View>
                   <View style={styles.previewItem}>
@@ -244,7 +252,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     alignItems: "center",
   },
-  pctText: { fontSize: 13, fontFamily: "Inter_600SemiBold" },
+  pctText: { fontSize: 13, fontFamily: "Inter_700Bold" },
   preview: {
     borderRadius: 12,
     borderWidth: 1,

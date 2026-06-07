@@ -76,7 +76,15 @@ export function Button({
       {loading ? (
         <ActivityIndicator color={textColor} size="small" />
       ) : (
-        <Text style={[styles.label, { color: textColor }]}>{label}</Text>
+        <Text
+          style={[
+            styles.label,
+            { color: textColor },
+            variant === "primary" && styles.primaryLabel,
+          ]}
+        >
+          {label}
+        </Text>
       )}
     </Pressable>
   );
@@ -94,6 +102,11 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 15,
-    fontFamily: "Inter_600SemiBold",
+    fontFamily: "Inter_700Bold",
+  },
+  primaryLabel: {
+    textShadowColor: "rgba(109, 35, 0, 0.35)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 1,
   },
 });

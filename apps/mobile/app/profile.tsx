@@ -1,6 +1,6 @@
 import { Feather } from "@expo/vector-icons";
 import { router } from "expo-router";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Alert,
   KeyboardAvoidingView,
@@ -19,6 +19,8 @@ import { Card } from "@/components/Card";
 import { TierBadge } from "@/components/TierBadge";
 import { useColors } from "@/hooks/useColors";
 import { useAuth } from "@/lib/auth";
+import { integrationMessage } from "@/lib/integrationErrors";
+import { useRevenueCat } from "@/lib/revenueCat";
 import { useCreditors, useDeleteAccount, useProfile, useUpsertProfile } from "@/lib/sliceData";
 import { supabase } from "@/lib/supabase";
 import {
@@ -43,10 +45,12 @@ export default function ProfileScreen() {
   const { creditors } = useCreditors();
   const updateProfile = useUpsertProfile();
   const deleteAccount = useDeleteAccount();
+  const revenueCat = useRevenueCat();
 
   const [name, setName] = useState(profile.name);
   const [email, setEmail] = useState(profile.email);
   const [hasChanges, setHasChanges] = useState(false);
+  const [subscriptionBusy, setSubscriptionBusy] = useState<"restore" | "manage" | null>(null);
 
   const topPad = Platform.OS === "web" ? 67 : 0;
   const bottomPad = Platform.OS === "web" ? 34 : 20;
@@ -54,6 +58,12 @@ export default function ProfileScreen() {
   const totalDebt = getTotalDebt(creditors);
   const totalTarget = getTotalSettlementTarget(creditors);
   const months = getMaxProgramLength(creditors);
+
+  useEffect(() => {
+    setName(profile.name);
+    setEmail(profile.email);
+    setHasChanges(false);
+  }, [profile.email, profile.name]);
 
   const handleSave = async () => {
     if (email.trim() && email.trim() !== profile.email) {
@@ -80,6 +90,22 @@ export default function ProfileScreen() {
         },
       ]
     );
+  };
+
+  const handleSubscriptionAction = async (action: "restore" | "manage") => {
+    setSubscriptionBusy(action);
+    try {
+      if (action === "restore") {
+        await revenueCat.restore();
+        Alert.alert("Purchases Restored", "Your subscription access has been refreshed.");
+      } else {
+        await revenueCat.manage();
+      }
+    } catch (error) {
+      Alert.alert("Subscription", integrationMessage(error, "The subscription action could not be completed."));
+    } finally {
+      setSubscriptionBusy(null);
+    }
   };
 
   return (
@@ -215,6 +241,26 @@ export default function ProfileScreen() {
                 </Text>
               </Pressable>
             </View>
+            <View style={styles.subscriptionLinks}>
+              <Pressable
+                onPress={() => handleSubscriptionAction("restore")}
+                disabled={subscriptionBusy !== null || !revenueCat.available}
+              >
+                <Text style={[styles.upgradeLink, { color: colors.primary }]}>
+                  {subscriptionBusy === "restore" ? "Restoring..." : "Restore Purchases"}
+                </Text>
+              </Pressable>
+              {profile.tier !== "free" && (
+                <Pressable
+                  onPress={() => handleSubscriptionAction("manage")}
+                  disabled={subscriptionBusy !== null || !revenueCat.available}
+                >
+                  <Text style={[styles.upgradeLink, { color: colors.primary }]}>
+                    {subscriptionBusy === "manage" ? "Opening..." : "Manage Subscription"}
+                  </Text>
+                </Pressable>
+              )}
+            </View>
           </Card>
 
           {/* Links */}
@@ -299,6 +345,7 @@ const styles = StyleSheet.create({
   infoLabel: { fontSize: 13, fontFamily: "Inter_400Regular" },
   infoValue: { fontSize: 13, fontFamily: "Inter_600SemiBold" },
   tierRow: { flexDirection: "row", alignItems: "center", gap: 12 },
+  subscriptionLinks: { flexDirection: "row", flexWrap: "wrap", gap: 16, marginTop: 14 },
   upgradeLink: { fontSize: 14, fontFamily: "Inter_600SemiBold" },
   links: { padding: 0, overflow: "hidden" },
   linkRow: {

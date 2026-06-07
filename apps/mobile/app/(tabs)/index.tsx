@@ -226,9 +226,9 @@ const styles = StyleSheet.create({
     gap: 14,
   },
   heroLabel: {
-    color: "rgba(255,255,255,0.75)",
+    color: "#FFFFFF",
     fontSize: 12,
-    fontFamily: "Inter_500Medium",
+    fontFamily: "Inter_700Bold",
     letterSpacing: 0.5,
   },
   heroAmount: {
@@ -244,16 +244,16 @@ const styles = StyleSheet.create({
   heroStats: { flexDirection: "row", alignItems: "center" },
   heroStat: { flex: 1, gap: 3 },
   heroStatLabel: {
-    color: "rgba(255,255,255,0.65)",
+    color: "#FFFFFF",
     fontSize: 10,
-    fontFamily: "Inter_400Regular",
+    fontFamily: "Inter_700Bold",
   },
   heroStatValue: {
     color: "#FFFFFF",
     fontSize: 15,
     fontFamily: "Inter_600SemiBold",
   },
-  savingsColor: { color: "#DCFCE7" },
+  savingsColor: { color: "#FFFFFF" },
   heroStatDivider: {
     width: StyleSheet.hairlineWidth,
     height: 32,

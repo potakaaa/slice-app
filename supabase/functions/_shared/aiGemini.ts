@@ -1,6 +1,7 @@
 import { env, LEGAL_DISCLAIMER } from "./env.ts";
 import { HttpError } from "./errors.ts";
 import { stripSensitive } from "./sanitize.ts";
+import type { z } from "https://esm.sh/zod@3.25.76";
 
 const SYSTEM_INSTRUCTION = [
   "You are Zest, SLICE's debt-resolution education assistant.",
@@ -16,6 +17,7 @@ const SYSTEM_INSTRUCTION = [
 export async function generateGeminiJson<T>(
   prompt: string,
   fallback: T,
+  schema?: z.ZodType<T>,
 ): Promise<{ data: T; model: string; raw: string }> {
   const model = env("GEMINI_MODEL", "gemini-1.5-pro");
   const key = env("GEMINI_API_KEY");
@@ -45,7 +47,10 @@ export async function generateGeminiJson<T>(
   if (!raw) return { data: fallback, model, raw: "" };
 
   try {
-    return { data: JSON.parse(raw) as T, model, raw };
+    const parsed = JSON.parse(raw) as unknown;
+    if (!schema) return { data: parsed as T, model, raw };
+    const validated = schema.safeParse(parsed);
+    return { data: validated.success ? validated.data : fallback, model, raw };
   } catch {
     return { data: fallback, model, raw };
   }

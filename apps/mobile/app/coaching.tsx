@@ -1,7 +1,7 @@
 import { Feather } from "@expo/vector-icons";
+import * as WebBrowser from "expo-web-browser";
 import React, { useState } from "react";
 import {
-  Alert,
   Platform,
   Pressable,
   SafeAreaView,
@@ -17,6 +17,7 @@ import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { UpgradePrompt } from "@/components/UpgradePrompt";
 import { useColors } from "@/hooks/useColors";
+import { integrationMessage } from "@/lib/integrationErrors";
 import { useCreditors, useProfile, useRequestCoaching } from "@/lib/sliceData";
 import {
   formatCurrency,
@@ -44,6 +45,9 @@ export default function CoachingScreen() {
   const [selectedTopic, setSelectedTopic] = useState(TOPICS[0]);
   const [notes, setNotes] = useState("");
   const [submitted, setSubmitted] = useState(false);
+  const [schedulingUrl, setSchedulingUrl] = useState<string | null>(null);
+  const [schedulingAvailable, setSchedulingAvailable] = useState(false);
+  const [submitError, setSubmitError] = useState("");
 
   const isGold = profile.tier === "gold" || profile.tier === "platinum";
   const topPad = Platform.OS === "web" ? 67 : 0;
@@ -53,12 +57,31 @@ export default function CoachingScreen() {
   const totalTarget = getTotalSettlementTarget(creditors);
 
   const handleSubmit = async () => {
-    await requestCoaching.mutateAsync({
-      topic: selectedTopic,
-      notes,
-    });
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    setSubmitted(true);
+    setSubmitError("");
+    try {
+      const result = await requestCoaching.mutateAsync({
+        topic: selectedTopic,
+        notes,
+      });
+      setSchedulingUrl(result.scheduling_url);
+      setSchedulingAvailable(result.scheduling_available);
+      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      setSubmitted(true);
+      if (result.scheduling_url) {
+        await WebBrowser.openBrowserAsync(result.scheduling_url);
+      }
+    } catch (error) {
+      setSubmitError(integrationMessage(error, "The coaching request could not be submitted."));
+    }
+  };
+
+  const reopenScheduling = async () => {
+    if (!schedulingUrl) return;
+    try {
+      await WebBrowser.openBrowserAsync(schedulingUrl);
+    } catch (error) {
+      setSubmitError(integrationMessage(error, "The scheduling page could not be opened."));
+    }
   };
 
   return (
@@ -97,12 +120,19 @@ export default function CoachingScreen() {
               Request Submitted!
             </Text>
             <Text style={[styles.successDesc, { color: colors.mutedForeground }]}>
-              Marc's team will reach out within 1-2 business days to confirm your session.
-              Watch your email for a calendar invite.
+              {schedulingAvailable
+                ? "Your request is saved. Choose a time in Calendly to complete scheduling."
+                : "Your request is saved. Marc's team will follow up by email because online scheduling is currently unavailable."}
             </Text>
             <Text style={[styles.successTopic, { color: colors.primary }]}>
               Topic: {selectedTopic}
             </Text>
+            {schedulingUrl && (
+              <Button label="Open Calendly Scheduling" onPress={reopenScheduling} fullWidth />
+            )}
+            {submitError ? (
+              <Text style={[styles.errorText, { color: colors.destructive }]}>{submitError}</Text>
+            ) : null}
           </Card>
         ) : (
           <>
@@ -200,6 +230,9 @@ export default function CoachingScreen() {
               loading={requestCoaching.isPending}
               fullWidth
             />
+            {submitError ? (
+              <Text style={[styles.errorText, { color: colors.destructive }]}>{submitError}</Text>
+            ) : null}
           </>
         )}
 
@@ -225,11 +258,11 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   marcName: { fontSize: 22, fontFamily: "Inter_700Bold", color: "#FFFFFF" },
-  marcTitle: { fontSize: 13, color: "rgba(255,255,255,0.8)", fontFamily: "Inter_500Medium" },
+  marcTitle: { fontSize: 13, color: "#FFFFFF", fontFamily: "Inter_700Bold" },
   marcBio: {
     fontSize: 13,
-    color: "rgba(255,255,255,0.85)",
-    fontFamily: "Inter_400Regular",
+    color: "#FFFFFF",
+    fontFamily: "Inter_700Bold",
     textAlign: "center",
     lineHeight: 20,
     marginTop: 4,
@@ -263,5 +296,6 @@ const styles = StyleSheet.create({
   successTitle: { fontSize: 20, fontFamily: "Inter_700Bold" },
   successDesc: { fontSize: 14, fontFamily: "Inter_400Regular", textAlign: "center", lineHeight: 22 },
   successTopic: { fontSize: 14, fontFamily: "Inter_600SemiBold" },
+  errorText: { fontSize: 12, fontFamily: "Inter_500Medium", textAlign: "center", lineHeight: 18 },
   disclaimer: { fontSize: 11, fontFamily: "Inter_400Regular", textAlign: "center", lineHeight: 16 },
 });

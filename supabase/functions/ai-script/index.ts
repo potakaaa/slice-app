@@ -1,7 +1,7 @@
 import { withCors } from "../_shared/cors.ts";
 import { fail, HttpError, ok, readJson } from "../_shared/errors.ts";
 import { getClientInfo, requireAuth } from "../_shared/auth.ts";
-import { aiScriptSchema } from "../_shared/schemas.ts";
+import { aiScriptContentSchema, aiScriptSchema } from "../_shared/schemas.ts";
 import { requireTier } from "../_shared/subscriptions.ts";
 import { enforceAiRateLimit } from "../_shared/rateLimit.ts";
 import { generateGeminiJson } from "../_shared/aiGemini.ts";
@@ -34,8 +34,8 @@ Deno.serve((req) => withCors(req, async () => {
       reminders: ["Do not share full bank/card numbers.", "Get the agreement in writing before paying."],
       disclaimer: "Template for educational use only; results are not guaranteed.",
     };
-    const prompt = `Generate a JSON negotiation call script using tone "${body.tone}" for:\n${safePromptJson({ creditor })}`;
-    const ai = await generateGeminiJson(prompt, fallback);
+    const prompt = `Generate a JSON negotiation call script with keys tone, sections, reminders, and disclaimer using tone "${body.tone}" for:\n${safePromptJson({ creditor })}`;
+    const ai = await generateGeminiJson(prompt, fallback, aiScriptContentSchema);
 
     const { data: saved, error: saveError } = await ctx.adminClient.from("negotiation_scripts").insert({
       user_id: ctx.user.id,
@@ -48,7 +48,7 @@ Deno.serve((req) => withCors(req, async () => {
     if (saveError) throw saveError;
     const clientInfo = getClientInfo(req);
     await auditLog(ctx.adminClient, { userId: ctx.user.id, action: "ai_script_generated", ip: clientInfo.ip, userAgent: clientInfo.userAgent });
-    return ok({ script: saved, model: ai.model });
+    return ok({ script: ai.data, saved_script_id: saved.id, model: ai.model });
   } catch (error) {
     return fail(error);
   }

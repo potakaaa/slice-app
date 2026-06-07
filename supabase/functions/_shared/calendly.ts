@@ -1,30 +1,23 @@
 import { optionalEnv } from "./env.ts";
 
-export async function createCalendlyBooking(input: {
-  name: string;
-  email: string;
+export function getCalendlyScheduling(input: {
   topic: string;
   notes?: string;
   priority: boolean;
 }) {
-  const apiKey = optionalEnv("CALENDLY_API_KEY");
-  const eventType = optionalEnv("CALENDLY_EVENT_TYPE_URI");
-  if (!apiKey || !eventType) {
+  const schedulingUrl = optionalEnv("CALENDLY_SCHEDULING_URL");
+  if (!schedulingUrl) {
     console.warn("calendly_skipped_missing_env");
-    return { uri: null, startsAt: null, skipped: true };
+    return { url: null, available: false };
   }
 
-  // Calendly's public scheduling flow is normally invitee-driven. For MVP,
-  // store a routing form link and metadata; replace this with one-off event
-  // scheduling if the account enables that API flow.
+  const url = new URL(schedulingUrl);
+  url.searchParams.set("a1", input.topic);
+  if (input.notes) url.searchParams.set("a2", input.notes.slice(0, 500));
+  if (input.priority) url.searchParams.set("a3", "priority");
+
   return {
-    uri: eventType,
-    startsAt: null,
-    skipped: false,
-    metadata: {
-      topic: input.topic,
-      priority: input.priority,
-      notes: input.notes ?? "",
-    },
+    url: url.toString(),
+    available: true,
   };
 }

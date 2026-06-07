@@ -79,11 +79,44 @@ export type BudgetRequest = z.infer<typeof BudgetRequest>;
 export const AiStrategyRequest = z.object({ creditor_id: z.string().uuid() });
 export type AiStrategyRequest = z.infer<typeof AiStrategyRequest>;
 
+export const AiStrategyContent = z.object({
+  suggested_first_offer_percentage: z.number().min(0.01).max(1),
+  reasoning: z.string().min(1),
+  strategy_steps: z.array(z.string().min(1)).min(1),
+  risks: z.array(z.string().min(1)),
+  disclaimer: z.string().min(1),
+});
+export type AiStrategyContent = z.infer<typeof AiStrategyContent>;
+
+export const AiStrategyResponse = z.object({
+  strategy: AiStrategyContent,
+  model: z.string().min(1),
+});
+export type AiStrategyResponse = z.infer<typeof AiStrategyResponse>;
+
 export const AiScriptRequest = z.object({
   creditor_id: z.string().uuid(),
   tone: z.enum(["calm", "firm", "hardship", "direct"]),
 });
 export type AiScriptRequest = z.infer<typeof AiScriptRequest>;
+
+export const AiScriptContent = z.object({
+  tone: z.enum(["calm", "firm", "hardship", "direct"]),
+  sections: z.record(z.string(), z.string().min(1)).refine(
+    (sections) => Object.keys(sections).length > 0,
+    "At least one script section is required",
+  ),
+  reminders: z.array(z.string().min(1)),
+  disclaimer: z.string().min(1),
+});
+export type AiScriptContent = z.infer<typeof AiScriptContent>;
+
+export const AiScriptResponse = z.object({
+  script: AiScriptContent,
+  saved_script_id: z.string().uuid(),
+  model: z.string().min(1),
+});
+export type AiScriptResponse = z.infer<typeof AiScriptResponse>;
 
 export const ZestChatRequest = z.object({
   message: z.string().min(1).max(3000),
@@ -95,6 +128,20 @@ export const CoachingBookingRequest = z.object({
   notes: z.string().max(3000).optional(),
 });
 export type CoachingBookingRequest = z.infer<typeof CoachingBookingRequest>;
+
+export const CoachingBookingResponse = z.object({
+  booking: z.object({
+    id: z.string().uuid(),
+    topic: z.string(),
+    notes: z.string().nullable(),
+    starts_at: z.string().nullable(),
+    status: z.enum(["pending", "confirmed", "completed", "cancelled"]),
+    created_at: z.string(),
+  }),
+  scheduling_url: z.string().url().nullable(),
+  scheduling_available: z.boolean(),
+});
+export type CoachingBookingResponse = z.infer<typeof CoachingBookingResponse>;
 
 export const CommunicationPreferencesRequest = z.object({
   marketing_emails_enabled: z.boolean().optional(),

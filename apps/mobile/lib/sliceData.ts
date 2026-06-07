@@ -126,17 +126,37 @@ export function useProfile() {
     enabled: Boolean(user),
     queryFn: async () => {
       if (!user) throw new Error("User is required");
+      const authName =
+        typeof user.user_metadata?.full_name === "string"
+          ? user.user_metadata.full_name
+          : typeof user.user_metadata?.name === "string"
+            ? user.user_metadata.name
+            : "";
       const { data, error } = await supabase
         .from("profiles")
         .select("*")
         .eq("id", user.id)
         .maybeSingle();
       if (error) throw error;
-      if (data) return mapProfile(data as ProfileRow);
+      if (data) {
+        const profile = mapProfile(data as ProfileRow);
+        return {
+          ...profile,
+          name: profile.name || authName,
+          email: profile.email || user.email || "",
+        };
+      }
 
       const { data: inserted, error: insertError } = await supabase
         .from("profiles")
-        .upsert({ id: user.id, email: user.email ?? "" }, { onConflict: "id" })
+        .upsert(
+          {
+            id: user.id,
+            email: user.email ?? "",
+            full_name: authName || null,
+          },
+          { onConflict: "id" }
+        )
         .select("*")
         .single();
       if (insertError) throw insertError;

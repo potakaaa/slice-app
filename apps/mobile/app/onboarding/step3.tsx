@@ -28,6 +28,7 @@ const GOALS: { value: PrimaryGoal; label: string; desc: string; icon: string }[]
 export default function OnboardingStep3() {
   const colors = useColors();
   const updateProfile = useAppStore((s) => s.updateProfile);
+  const markOnboardingReady = useAppStore((s) => s.markOnboardingReady);
 
   const [creditScore, setCreditScore] = useState("");
   const [goal, setGoal] = useState<PrimaryGoal>("settle");
@@ -38,7 +39,8 @@ export default function OnboardingStep3() {
       creditScore: Number(creditScore) || 0,
       primaryGoal: goal,
     });
-    router.push("/onboarding/complete");
+    markOnboardingReady();
+    router.replace("/auth");
   };
 
   return (

@@ -3,30 +3,29 @@ import { adminClient } from "../_shared/auth.ts";
 import { env } from "../_shared/env.ts";
 import { fail, HttpError, ok } from "../_shared/errors.ts";
 import { auditLog } from "../_shared/audit.ts";
-import { tierFromRevenueCat } from "../_shared/subscriptions.ts";
+import { fetchRevenueCatTier } from "../_shared/revenuecat.ts";
 import { sendEmail } from "../_shared/email.ts";
 
-async function verifySignature(req: Request, raw: string) {
+function verifyAuthorization(req: Request) {
   const secret = env("REVENUECAT_WEBHOOK_SECRET");
-  const signature = req.headers.get("x-revenuecat-signature");
-  if (!signature) throw new HttpError(401, "invalid_signature", "Missing RevenueCat signature");
-  const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
-  const digest = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(raw));
-  const expected = Array.from(new Uint8Array(digest)).map((b) => b.toString(16).padStart(2, "0")).join("");
-  if (signature !== expected) throw new HttpError(401, "invalid_signature", "Invalid RevenueCat signature");
+  const authorization = req.headers.get("authorization");
+  if (!authorization || authorization !== secret) {
+    throw new HttpError(401, "invalid_authorization", "Invalid RevenueCat authorization");
+  }
 }
 
 Deno.serve((req) => withCors(req, async () => {
   try {
     const raw = await req.text();
-    await verifySignature(req, raw);
+    verifyAuthorization(req);
     const body = JSON.parse(raw);
     const event = body.event ?? body;
     const appUserId = event.app_user_id as string | undefined;
     if (!appUserId) throw new HttpError(400, "missing_app_user_id", "RevenueCat app user id is required");
 
     const admin = adminClient();
-    const tier = tierFromRevenueCat(event.entitlement_id ?? event.product_id);
+    const tier = await fetchRevenueCatTier(appUserId);
+    if (!tier) throw new HttpError(500, "revenuecat_not_configured", "RevenueCat API key is required");
     const { data: profile, error: profileError } = await admin
       .from("profiles")
       .select("id,email")

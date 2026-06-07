@@ -1,6 +1,6 @@
 import { Feather } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Platform,
   Pressable,
@@ -15,6 +15,7 @@ import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { UpgradePrompt } from "@/components/UpgradePrompt";
 import { useColors } from "@/hooks/useColors";
+import { integrationMessage } from "@/lib/integrationErrors";
 import { useCreditors, useGenerateAiScript, useProfile } from "@/lib/sliceData";
 import { formatCurrency, formatPct, getAISuggestedOffer } from "@/utils/calculations";
 import type { ScriptTone } from "@/types";
@@ -68,6 +69,11 @@ export default function AIScriptScreen() {
   const isSilver = profile.tier !== "free";
   const topPad = Platform.OS === "web" ? 67 : 0;
 
+  useEffect(() => {
+    setActiveTab(0);
+    generateScript.reset();
+  }, [creditor?.id, tone]);
+
   if (!creditor) {
     return (
       <SafeAreaView style={[styles.safe, { backgroundColor: colors.background }]}>
@@ -78,7 +84,8 @@ export default function AIScriptScreen() {
 
   const aiOffer = getAISuggestedOffer(creditor.balance);
   const aiOfferAmt = creditor.balance * aiOffer;
-  const scripts = buildScript(creditor.name, creditor.balance, aiOffer, aiOfferAmt, tone);
+  const generatedScript = generateScript.data?.script;
+  const scripts = generatedScript?.sections ?? buildScript(creditor.name, creditor.balance, aiOffer, aiOfferAmt, tone);
   const scriptKeys = Object.keys(scripts);
   const bottomPad = Platform.OS === "web" ? 34 : 20;
 
@@ -138,7 +145,7 @@ export default function AIScriptScreen() {
                     <Text
                       style={[
                         styles.toneDesc,
-                        { color: tone === t.value ? "rgba(255,255,255,0.8)" : colors.mutedForeground },
+                        { color: tone === t.value ? "#FFFFFF" : colors.mutedForeground },
                       ]}
                     >
                       {t.desc}
@@ -181,7 +188,8 @@ export default function AIScriptScreen() {
             {/* Script content */}
             <Card style={styles.scriptCard}>
               <Text style={[styles.scriptTitle, { color: colors.primary }]}>
-                {scriptKeys[activeTab]}
+                {generatedScript ? "Generated Script" : "Script Preview"} ·{" "}
+                {scriptKeys[activeTab]?.replaceAll("_", " ")}
               </Text>
               <Text style={[styles.scriptText, { color: colors.foreground }]}>
                 {scripts[scriptKeys[activeTab]]}
@@ -193,23 +201,39 @@ export default function AIScriptScreen() {
                 </Text>
               </View>
               <Button
-                label={generateScript.data ? "Server Script Saved" : "Generate Server AI Script"}
+                label={generatedScript ? "Regenerate AI Script" : "Generate AI Script"}
                 onPress={() => generateScript.mutate({ creditorId: creditor.id, tone })}
                 loading={generateScript.isPending}
                 fullWidth
               />
-              {generateScript.error instanceof Error && (
+              {generateScript.error && (
                 <Text style={[styles.errorText, { color: colors.destructive }]}>
-                  {generateScript.error.message}
+                  {integrationMessage(generateScript.error, "The AI script could not be generated.")}
                 </Text>
               )}
             </Card>
+
+            {generatedScript && generatedScript.reminders.length > 0 && (
+              <Card>
+                <Text style={[styles.sectionTitle, { color: colors.foreground }]}>
+                  Generated Reminders
+                </Text>
+                {generatedScript.reminders.map((reminder) => (
+                  <View key={reminder} style={styles.reminderRow}>
+                    <Feather name="check-circle" size={14} color={colors.primary} />
+                    <Text style={[styles.reminderText, { color: colors.foreground }]}>
+                      {reminder}
+                    </Text>
+                  </View>
+                ))}
+              </Card>
+            )}
           </>
         )}
 
         <Text style={[styles.disclaimer, { color: colors.mutedForeground }]}>
-          Scripts are templates for educational use only. SLICE does not guarantee results.
-          Consult a financial professional for legal advice.
+          {generatedScript?.disclaimer ??
+            "This preview is a template for educational use only. Generate an AI script for creditor-specific wording."}
         </Text>
       </ScrollView>
     </SafeAreaView>
@@ -231,9 +255,9 @@ const styles = StyleSheet.create({
     borderRadius: 100,
     marginBottom: 6,
   },
-  aiBadgeText: { color: "#FFFFFF", fontSize: 11, fontFamily: "Inter_600SemiBold" },
+  aiBadgeText: { color: "#FFFFFF", fontSize: 11, fontFamily: "Inter_700Bold" },
   creditorName: { fontSize: 22, fontFamily: "Inter_700Bold", color: "#FFFFFF" },
-  balance: { fontSize: 13, color: "rgba(255,255,255,0.8)", fontFamily: "Inter_400Regular" },
+  balance: { fontSize: 13, color: "#FFFFFF", fontFamily: "Inter_700Bold" },
   sectionTitle: { fontSize: 15, fontFamily: "Inter_700Bold", marginBottom: 12 },
   toneGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   toneBtn: {
@@ -244,7 +268,7 @@ const styles = StyleSheet.create({
     gap: 3,
   },
   toneName: { fontSize: 14, fontFamily: "Inter_600SemiBold" },
-  toneDesc: { fontSize: 11, fontFamily: "Inter_400Regular" },
+  toneDesc: { fontSize: 11, fontFamily: "Inter_700Bold" },
   tabs: { gap: 8, paddingHorizontal: 0, paddingBottom: 2 },
   tab: {
     paddingHorizontal: 14,
@@ -268,6 +292,8 @@ const styles = StyleSheet.create({
   },
   phoneHintText: { fontSize: 12, fontFamily: "Inter_400Regular", flex: 1, lineHeight: 18 },
   errorText: { fontSize: 12, fontFamily: "Inter_500Medium" },
+  reminderRow: { flexDirection: "row", alignItems: "flex-start", gap: 8, marginBottom: 8 },
+  reminderText: { flex: 1, fontSize: 13, fontFamily: "Inter_400Regular", lineHeight: 18 },
   disclaimer: {
     fontSize: 11,
     fontFamily: "Inter_400Regular",

@@ -13,16 +13,20 @@ import {
 import { Card } from "@/components/Card";
 import { ProgressBar } from "@/components/ProgressBar";
 import { useColors } from "@/hooks/useColors";
-import { formatCurrency, calcSettledAmount } from "@/utils/calculations";
+import {
+  formatCurrency,
+  formatMoneyInput,
+  parseMoneyInput,
+} from "@/utils/calculations";
 
 export default function SavingsPlannerScreen() {
   const colors = useColors();
-  const [balance, setBalance] = useState("10000");
+  const [balance, setBalance] = useState(formatMoneyInput(10000));
   const [pct, setPct] = useState("50");
   const topPad = Platform.OS === "web" ? 67 : 0;
   const bottomPad = Platform.OS === "web" ? 34 : 20;
 
-  const bal = Number(balance);
+  const bal = parseMoneyInput(balance);
   const settlePct = Number(pct) / 100;
   const settlementTarget = bal * settlePct;
 
@@ -51,7 +55,7 @@ export default function SavingsPlannerScreen() {
                   <Text style={[styles.prefix, { color: colors.mutedForeground }]}>$</Text>
                   <TextInput
                     value={balance}
-                    onChangeText={setBalance}
+                    onChangeText={(value) => setBalance(formatMoneyInput(value))}
                     keyboardType="numeric"
                     style={[styles.input, { color: colors.foreground }]}
                   />

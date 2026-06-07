@@ -16,27 +16,37 @@ import {
 import { Button } from "@/components/Button";
 import { useColors } from "@/hooks/useColors";
 import { useAppStore } from "@/store/useAppStore";
-import { formatCurrency } from "@/utils/calculations";
+import {
+  formatCurrency,
+  formatMoneyInput,
+  parseMoneyInput,
+} from "@/utils/calculations";
 
 const SETTLEMENT_OPTIONS = [0.3, 0.4, 0.5, 0.6, 0.7];
 
 export default function OnboardingStep1() {
   const colors = useColors();
+  const profile = useAppStore((s) => s.profile);
   const updateProfile = useAppStore((s) => s.updateProfile);
 
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [monthlySavings, setMonthlySavings] = useState("500");
-  const [settlementPct, setSettlementPct] = useState(0.5);
+  const [name, setName] = useState(profile.name);
+  const [email, setEmail] = useState(profile.email);
+  const [monthlySavings, setMonthlySavings] = useState(
+    formatMoneyInput(profile.defaultMonthlySavings)
+  );
+  const [settlementPct, setSettlementPct] = useState(
+    profile.defaultSettlementPercentage
+  );
   const topPad = Platform.OS === "web" ? 67 : 0;
 
-  const canContinue = name.trim().length > 0 && Number(monthlySavings) > 0;
+  const canContinue =
+    name.trim().length > 0 && parseMoneyInput(monthlySavings) > 0;
 
   const handleNext = () => {
     updateProfile({
       name: name.trim(),
       email: email.trim(),
-      defaultMonthlySavings: Number(monthlySavings),
+      defaultMonthlySavings: parseMoneyInput(monthlySavings),
       defaultSettlementPercentage: settlementPct,
     });
     router.push("/onboarding/step2");
@@ -123,7 +133,9 @@ export default function OnboardingStep1() {
                 <Text style={[styles.dollar, { color: colors.mutedForeground }]}>$</Text>
                 <TextInput
                   value={monthlySavings}
-                  onChangeText={setMonthlySavings}
+                  onChangeText={(value) =>
+                    setMonthlySavings(formatMoneyInput(value))
+                  }
                   keyboardType="numeric"
                   placeholder="500"
                   placeholderTextColor={colors.mutedForeground}
@@ -243,7 +255,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1,
   },
-  pctText: { fontSize: 14, fontFamily: "Inter_600SemiBold" },
+  pctText: { fontSize: 14, fontFamily: "Inter_700Bold" },
   example: { fontSize: 12, fontFamily: "Inter_400Regular", fontStyle: "italic" },
   footer: {
     padding: 20,

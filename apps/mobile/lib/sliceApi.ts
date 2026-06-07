@@ -1,3 +1,17 @@
+import type {
+  AiScriptResponse,
+  AiStrategyResponse,
+  CoachingBookingResponse,
+  ProfileUpsertRequest,
+} from "@workspace/api-zod";
+import {
+  AiScriptResponse as AiScriptResponseSchema,
+  AiStrategyResponse as AiStrategyResponseSchema,
+  CoachingBookingResponse as CoachingBookingResponseSchema,
+} from "@workspace/api-zod";
+import type { ZodType } from "zod";
+
+import { IntegrationError } from "./integrationErrors";
 import { getCurrentAccessToken, getSupabasePublicConfig, type AccessTokenProvider } from "./supabase";
 
 export type SliceApiSuccess<T> = { ok: true; data: T };
@@ -30,14 +44,71 @@ export class SliceApiClient {
       body: options.body === undefined ? undefined : JSON.stringify(options.body),
     });
 
-    const payload = (await response.json()) as SliceApiResponse<T>;
-    if (!payload.ok) {
-      throw new Error(payload.error.message);
+    let payload: unknown;
+    try {
+      payload = await response.json();
+    } catch {
+      throw new IntegrationError(
+        "invalid_backend_response",
+        "The SLICE backend returned an invalid response.",
+        response.status,
+      );
     }
-    return payload.data;
+
+    if (
+      typeof payload !== "object" ||
+      payload === null ||
+      !("ok" in payload) ||
+      typeof payload.ok !== "boolean"
+    ) {
+      throw new IntegrationError(
+        "invalid_backend_response",
+        "The SLICE backend returned an invalid response.",
+        response.status,
+      );
+    }
+
+    if (!payload.ok) {
+      if (
+        !("error" in payload) ||
+        typeof payload.error !== "object" ||
+        payload.error === null ||
+        !("code" in payload.error) ||
+        typeof payload.error.code !== "string" ||
+        !("message" in payload.error) ||
+        typeof payload.error.message !== "string"
+      ) {
+        throw new IntegrationError(
+          "invalid_backend_response",
+          "The SLICE backend returned an invalid error response.",
+          response.status,
+        );
+      }
+      throw new IntegrationError(payload.error.code, payload.error.message, response.status);
+    }
+
+    if (!("data" in payload)) {
+      throw new IntegrationError(
+        "invalid_backend_response",
+        "The SLICE backend returned an incomplete response.",
+        response.status,
+      );
+    }
+    return payload.data as T;
   }
 
-  profileUpsert(body: unknown) {
+  private parse<T>(schema: ZodType<T>, value: unknown): T {
+    const result = schema.safeParse(value);
+    if (!result.success) {
+      throw new IntegrationError(
+        "invalid_backend_response",
+        "The SLICE backend returned data in an unexpected format.",
+      );
+    }
+    return result.data;
+  }
+
+  profileUpsert(body: ProfileUpsertRequest) {
     return this.call("profile-upsert", { body });
   }
 
@@ -57,12 +128,17 @@ export class SliceApiClient {
     return this.call("creditors", { method: "DELETE", query: { id } });
   }
 
-  generateAiStrategy(creditorId: string) {
-    return this.call("ai-strategy", { body: { creditor_id: creditorId } });
+  async generateAiStrategy(creditorId: string): Promise<AiStrategyResponse> {
+    const value = await this.call<unknown>("ai-strategy", { body: { creditor_id: creditorId } });
+    return this.parse(AiStrategyResponseSchema, value);
   }
 
-  generateAiScript(creditorId: string, tone: "calm" | "firm" | "hardship" | "direct") {
-    return this.call("ai-script", { body: { creditor_id: creditorId, tone } });
+  async generateAiScript(
+    creditorId: string,
+    tone: "calm" | "firm" | "hardship" | "direct",
+  ): Promise<AiScriptResponse> {
+    const value = await this.call<unknown>("ai-script", { body: { creditor_id: creditorId, tone } });
+    return this.parse(AiScriptResponseSchema, value);
   }
 
   sendZestMessage(message: string) {
@@ -70,11 +146,12 @@ export class SliceApiClient {
   }
 
   syncEntitlements() {
-    return this.call("entitlement-sync");
+    return this.call<{ tier: string; synced: boolean }>("entitlement-sync");
   }
 
-  requestCoaching(topic: string, notes?: string) {
-    return this.call("coaching-booking", { body: { topic, notes } });
+  async requestCoaching(topic: string, notes?: string): Promise<CoachingBookingResponse> {
+    const value = await this.call<unknown>("coaching-booking", { body: { topic, notes } });
+    return this.parse(CoachingBookingResponseSchema, value);
   }
 
   exportData() {

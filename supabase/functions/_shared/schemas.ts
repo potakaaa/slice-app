@@ -59,6 +59,22 @@ export const budgetInputSchema = z.object({
 
 export const aiStrategySchema = z.object({ creditor_id: uuidSchema });
 export const aiScriptSchema = z.object({ creditor_id: uuidSchema, tone: scriptToneSchema });
+export const aiStrategyContentSchema = z.object({
+  suggested_first_offer_percentage: z.number().min(0.01).max(1),
+  reasoning: z.string().trim().min(1),
+  strategy_steps: z.array(z.string().trim().min(1)).min(1),
+  risks: z.array(z.string().trim().min(1)),
+  disclaimer: z.string().trim().min(1),
+});
+export const aiScriptContentSchema = z.object({
+  tone: scriptToneSchema,
+  sections: z.record(z.string(), z.string().trim().min(1)).refine(
+    (sections) => Object.keys(sections).length > 0,
+    "At least one script section is required",
+  ),
+  reminders: z.array(z.string().trim().min(1)),
+  disclaimer: z.string().trim().min(1),
+});
 export const zestChatSchema = z.object({ message: z.string().trim().min(1).max(3000) });
 
 export const coachingBookingSchema = z.object({

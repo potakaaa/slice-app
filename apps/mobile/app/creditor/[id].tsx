@@ -108,7 +108,7 @@ export default function CreditorDetailScreen() {
               style={styles.editBtn}
               hitSlop={8}
             >
-              <Feather name="edit-2" size={14} color="#FF6B35" />
+              <Feather name="edit-2" size={14} color="#FF5A00" />
               <Text style={styles.editBtnText}>Edit</Text>
             </Pressable>
           </View>
@@ -303,9 +303,9 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   heroName: { fontSize: 20, fontFamily: "Inter_700Bold", color: "#FFFFFF" },
-  heroPhone: { fontSize: 13, color: "rgba(255,255,255,0.8)", fontFamily: "Inter_400Regular" },
+  heroPhone: { fontSize: 13, color: "#FFFFFF", fontFamily: "Inter_700Bold" },
   heroAmount: { fontSize: 36, fontFamily: "Inter_700Bold", color: "#FFFFFF" },
-  heroLabel: { fontSize: 12, color: "rgba(255,255,255,0.75)", fontFamily: "Inter_400Regular" },
+  heroLabel: { fontSize: 12, color: "#FFFFFF", fontFamily: "Inter_700Bold" },
   sectionLabel: {
     fontSize: 11,
     fontFamily: "Inter_700Bold",
@@ -319,7 +319,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: "center",
   },
-  statusText: { fontSize: 13, fontFamily: "Inter_600SemiBold" },
+  statusText: { fontSize: 13, fontFamily: "Inter_700Bold" },
   programGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -338,7 +338,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: "center",
   },
-  pctText: { fontSize: 12, fontFamily: "Inter_600SemiBold" },
+  pctText: { fontSize: 12, fontFamily: "Inter_700Bold" },
   aiCard: { borderWidth: 1.5, gap: 8 },
   aiHeader: { flexDirection: "row", alignItems: "center", gap: 8 },
   aiTitle: { fontSize: 14, fontFamily: "Inter_700Bold" },
@@ -364,7 +364,7 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 8,
   },
-  editBtnText: { fontSize: 13, fontFamily: "Inter_600SemiBold", color: "#FF6B35" },
+  editBtnText: { fontSize: 13, fontFamily: "Inter_700Bold", color: "#FF5A00" },
   disclaimer: {
     fontSize: 11,
     fontFamily: "Inter_400Regular",

@@ -1,6 +1,6 @@
 import { Feather } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
-import React from "react";
+import React, { useEffect } from "react";
 import {
   Platform,
   SafeAreaView,
@@ -14,6 +14,7 @@ import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { UpgradePrompt } from "@/components/UpgradePrompt";
 import { useColors } from "@/hooks/useColors";
+import { integrationMessage } from "@/lib/integrationErrors";
 import { useCreditors, useGenerateAiStrategy, useProfile } from "@/lib/sliceData";
 import {
   formatCurrency,
@@ -50,6 +51,10 @@ export default function AIStrategyScreen() {
   const isSilver = profile.tier !== "free";
   const topPad = Platform.OS === "web" ? 67 : 0;
 
+  useEffect(() => {
+    generateStrategy.reset();
+  }, [creditor?.id]);
+
   if (!creditor) {
     return (
       <SafeAreaView style={[styles.safe, { backgroundColor: colors.background }]}>
@@ -58,7 +63,8 @@ export default function AIStrategyScreen() {
     );
   }
 
-  const aiOffer = getAISuggestedOffer(creditor.balance);
+  const serverStrategy = generateStrategy.data?.strategy;
+  const aiOffer = serverStrategy?.suggested_first_offer_percentage ?? getAISuggestedOffer(creditor.balance);
   const aiOfferAmt = creditor.balance * aiOffer;
   const bottomPad = Platform.OS === "web" ? 34 : 20;
 
@@ -89,7 +95,7 @@ export default function AIStrategyScreen() {
             {/* Suggested first offer */}
             <Card style={[styles.offerCard, { backgroundColor: "#F5F3FF", borderColor: "#8B5CF6", borderWidth: 1.5 }]}>
               <Text style={[styles.offerLabel, { color: "#7C3AED" }]}>
-                AI SUGGESTED FIRST OFFER
+                {serverStrategy ? "GENERATED AI FIRST OFFER" : "STRATEGY PREVIEW"}
               </Text>
               <Text style={[styles.offerAmount, { color: "#5B21B6" }]}>
                 {formatCurrency(aiOfferAmt)}
@@ -98,18 +104,18 @@ export default function AIStrategyScreen() {
                 {formatPct(aiOffer)} of {formatCurrency(creditor.balance)}
               </Text>
               <Text style={[styles.offerReason, { color: "#6D28D9" }]}>
-                Starting at {formatPct(aiOffer)} gives you room to negotiate up to your target of{" "}
-                {formatPct(creditor.settlementPercentage)}. Creditors expect counter-offers.
+                {serverStrategy?.reasoning ??
+                  `Starting at ${formatPct(aiOffer)} gives you room to negotiate up to your target of ${formatPct(creditor.settlementPercentage)}. Generate a strategy for creditor-specific guidance.`}
               </Text>
               <Button
-                label={generateStrategy.data ? "Server Strategy Saved" : "Generate Server AI Strategy"}
+                label={serverStrategy ? "Regenerate AI Strategy" : "Generate AI Strategy"}
                 onPress={() => generateStrategy.mutate(creditor.id)}
                 loading={generateStrategy.isPending}
                 fullWidth
               />
-              {generateStrategy.error instanceof Error && (
+              {generateStrategy.error && (
                 <Text style={[styles.errorText, { color: colors.destructive }]}>
-                  {generateStrategy.error.message}
+                  {integrationMessage(generateStrategy.error, "The AI strategy could not be generated.")}
                 </Text>
               )}
             </Card>
@@ -120,51 +126,45 @@ export default function AIStrategyScreen() {
                 Negotiation Strategy
               </Text>
               <View style={styles.steps}>
-                {[
-                  {
-                    step: "1",
-                    title: "Prepare your hardship statement",
-                    desc: "Write 2-3 sentences explaining your financial hardship. Loss of income, medical costs, or major life changes are effective. Keep it brief and factual.",
-                  },
-                  {
-                    step: "2",
-                    title: `Open with ${formatPct(aiOffer)} offer`,
-                    desc: `Tell them you can pay ${formatCurrency(aiOfferAmt)} as a full and final settlement. This gives you room to negotiate up to ${formatPct(creditor.settlementPercentage)}.`,
-                  },
-                  {
-                    step: "3",
-                    title: "Let them counter — don't rush",
-                    desc: "If they counter, ask for time to 'check with family' or 'review your budget'. This is normal and expected.",
-                  },
-                  {
-                    step: "4",
-                    title: "Get the agreement in writing first",
-                    desc: "Before making any payment, request a written settlement agreement via email or mail. Do not pay based on a verbal commitment.",
-                  },
-                  {
-                    step: "5",
-                    title: "Ask about credit reporting",
-                    desc: `Ask if they can report the account as "Paid in Full" rather than "Settled." Not guaranteed, but worth asking.`,
-                  },
-                ].map((item) => (
-                  <View key={item.step} style={styles.step}>
+                {(serverStrategy?.strategy_steps ?? [
+                  "Prepare a short, factual hardship statement.",
+                  `Open with a ${formatPct(aiOffer)} offer and keep your target limit private.`,
+                  "Allow the creditor to counter and take time before responding.",
+                  "Get the complete settlement agreement in writing before paying.",
+                  "Confirm how the resolved account will be reported to credit bureaus.",
+                ]).map((description, index) => (
+                  <View key={`${index}-${description}`} style={styles.step}>
                     <View style={[styles.stepNum, { backgroundColor: colors.secondary }]}>
                       <Text style={[styles.stepNumText, { color: colors.primary }]}>
-                        {item.step}
+                        {index + 1}
                       </Text>
                     </View>
                     <View style={styles.stepContent}>
                       <Text style={[styles.stepTitle, { color: colors.foreground }]}>
-                        {item.title}
+                        {serverStrategy ? `Generated step ${index + 1}` : `Preview step ${index + 1}`}
                       </Text>
                       <Text style={[styles.stepDesc, { color: colors.mutedForeground }]}>
-                        {item.desc}
+                        {description}
                       </Text>
                     </View>
                   </View>
                 ))}
               </View>
             </Card>
+
+            {serverStrategy && serverStrategy.risks.length > 0 && (
+              <Card>
+                <Text style={[styles.sectionTitle, { color: colors.destructive }]}>
+                  Risks to Consider
+                </Text>
+                {serverStrategy.risks.map((risk) => (
+                  <View key={risk} style={styles.tipRow}>
+                    <Feather name="alert-triangle" size={14} color={colors.destructive} />
+                    <Text style={[styles.tipText, { color: colors.foreground }]}>{risk}</Text>
+                  </View>
+                ))}
+              </Card>
+            )}
 
             {/* Do's */}
             <Card>
@@ -202,9 +202,8 @@ export default function AIStrategyScreen() {
         />
 
         <Text style={[styles.disclaimer, { color: colors.mutedForeground }]}>
-          This strategy is for educational purposes only. SLICE does not guarantee any
-          creditor will accept a settlement offer. Consult a financial professional for
-          personalized advice.
+          {serverStrategy?.disclaimer ??
+            "This preview is for educational purposes only. SLICE does not guarantee any creditor will accept a settlement offer."}
         </Text>
       </ScrollView>
     </SafeAreaView>
@@ -226,9 +225,9 @@ const styles = StyleSheet.create({
     borderRadius: 100,
     marginBottom: 6,
   },
-  aiBadgeText: { color: "#FFFFFF", fontSize: 11, fontFamily: "Inter_600SemiBold" },
+  aiBadgeText: { color: "#FFFFFF", fontSize: 11, fontFamily: "Inter_700Bold" },
   creditorName: { fontSize: 22, fontFamily: "Inter_700Bold", color: "#FFFFFF" },
-  balance: { fontSize: 14, color: "rgba(255,255,255,0.8)", fontFamily: "Inter_400Regular" },
+  balance: { fontSize: 14, color: "#FFFFFF", fontFamily: "Inter_700Bold" },
   offerCard: { padding: 16, gap: 4 },
   offerLabel: { fontSize: 11, fontFamily: "Inter_700Bold", letterSpacing: 0.8 },
   offerAmount: { fontSize: 36, fontFamily: "Inter_700Bold" },

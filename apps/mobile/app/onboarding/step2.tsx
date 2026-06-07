@@ -17,7 +17,12 @@ import {
 import { Button } from "@/components/Button";
 import { useColors } from "@/hooks/useColors";
 import { useAppStore } from "@/store/useAppStore";
-import { generateId, formatCurrency } from "@/utils/calculations";
+import {
+  formatCurrency,
+  formatMoneyInput,
+  generateId,
+  parseMoneyInput,
+} from "@/utils/calculations";
 import type { Creditor } from "@/types";
 
 interface TempCreditor {
@@ -30,10 +35,18 @@ interface TempCreditor {
 export default function OnboardingStep2() {
   const colors = useColors();
   const profile = useAppStore((s) => s.profile);
-  const addCreditor = useAppStore((s) => s.addCreditor);
+  const draftCreditors = useAppStore((s) => s.creditors);
+  const setDraftCreditors = useAppStore((s) => s.setCreditors);
 
   const [creditors, setCreditors] = useState<TempCreditor[]>([
-    { id: generateId(), name: "", phone: "", balance: "" },
+    ...(draftCreditors.length > 0
+      ? draftCreditors.map((creditor) => ({
+          id: creditor.id,
+          name: creditor.name,
+          phone: creditor.phone,
+          balance: formatMoneyInput(creditor.balance),
+        }))
+      : [{ id: generateId(), name: "", phone: "", balance: "" }]),
   ]);
 
   const topPad = Platform.OS === "web" ? 67 : 0;
@@ -57,20 +70,25 @@ export default function OnboardingStep2() {
   };
 
   const validCreditors = creditors.filter(
-    (c) => c.name.trim() && Number(c.balance) > 0
+    (c) => c.name.trim() && parseMoneyInput(c.balance) > 0
   );
   const canContinue = validCreditors.length > 0;
 
   const handleNext = () => {
-    validCreditors.forEach((c, i) => {
-      addCreditor({
-        name: c.name.trim(),
-        phone: c.phone.trim(),
-        balance: Number(c.balance),
+    setDraftCreditors(
+      validCreditors.map((creditor, index) => ({
+        id: creditor.id,
+        name: creditor.name.trim(),
+        phone: creditor.phone.trim(),
+        balance: parseMoneyInput(creditor.balance),
         settlementPercentage: profile.defaultSettlementPercentage,
         monthlySavings: profile.defaultMonthlySavings,
-      });
-    });
+        status: "active",
+        notes: "",
+        priority: index + 1,
+        addedAt: new Date().toISOString(),
+      }))
+    );
     router.push("/onboarding/step3");
   };
 
@@ -148,16 +166,18 @@ export default function OnboardingStep2() {
                   <Text style={[styles.dollar, { color: colors.mutedForeground }]}>$</Text>
                   <TextInput
                     value={c.balance}
-                    onChangeText={(v) => updateRow(c.id, "balance", v)}
+                    onChangeText={(value) =>
+                      updateRow(c.id, "balance", formatMoneyInput(value))
+                    }
                     placeholder="Amount owed"
                     placeholderTextColor={colors.mutedForeground}
                     keyboardType="numeric"
                     style={[styles.dollarField, { color: colors.foreground }]}
                   />
                 </View>
-                {Number(c.balance) > 0 && (
+                {parseMoneyInput(c.balance) > 0 && (
                   <Text style={[styles.preview, { color: colors.mutedForeground }]}>
-                    Settlement target: {formatCurrency(Number(c.balance) * profile.defaultSettlementPercentage)} (
+                    Settlement target: {formatCurrency(parseMoneyInput(c.balance) * profile.defaultSettlementPercentage)} (
                     {Math.round(profile.defaultSettlementPercentage * 100)}%)
                   </Text>
                 )}

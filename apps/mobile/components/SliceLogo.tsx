@@ -12,7 +12,7 @@ export function SliceLogo({ size = 64 }: SliceLogoProps) {
     <View style={{ width: size, height: size }}>
       <Svg width={size} height={size} viewBox="0 0 100 100">
         {/* Background circle */}
-        <Circle cx="50" cy="50" r="48" fill="#FF6B35" />
+        <Circle cx="50" cy="50" r="48" fill="#FF5A00" />
         {/* Orange segments (simplified citrus cross-section) */}
         <G opacity="0.3">
           <Path d="M50 10 L50 50" stroke="#FFFFFF" strokeWidth="2" />

@@ -17,7 +17,13 @@ import {
 import { Button } from "@/components/Button";
 import { useColors } from "@/hooks/useColors";
 import { useCreditors, useDeleteCreditor, useUpdateCreditor } from "@/lib/sliceData";
-import { formatCurrency, calcSettledAmount, calcProgramLength } from "@/utils/calculations";
+import {
+  calcProgramLength,
+  calcSettledAmount,
+  formatCurrency,
+  formatMoneyInput,
+  parseMoneyInput,
+} from "@/utils/calculations";
 
 const SETTLEMENT_OPTIONS = [0.3, 0.4, 0.5, 0.6, 0.7];
 
@@ -33,10 +39,12 @@ export default function EditCreditorScreen() {
 
   const [name, setName] = useState(creditor?.name ?? "");
   const [phone, setPhone] = useState(creditor?.phone ?? "");
-  const [balance, setBalance] = useState(creditor ? String(creditor.balance) : "");
+  const [balance, setBalance] = useState(
+    creditor ? formatMoneyInput(creditor.balance) : ""
+  );
   const [settlementPct, setSettlementPct] = useState(creditor?.settlementPercentage ?? 0.5);
   const [monthlySavings, setMonthlySavings] = useState(
-    creditor ? String(creditor.monthlySavings) : "500"
+    creditor ? formatMoneyInput(creditor.monthlySavings) : "500"
   );
 
   if (!creditor) {
@@ -47,17 +55,19 @@ export default function EditCreditorScreen() {
     );
   }
 
-  const canSave = name.trim().length > 0 && Number(balance) > 0;
-  const settled = calcSettledAmount(Number(balance), settlementPct);
-  const months = calcProgramLength(settled, Number(monthlySavings));
+  const balanceValue = parseMoneyInput(balance);
+  const monthlySavingsValue = parseMoneyInput(monthlySavings);
+  const canSave = name.trim().length > 0 && balanceValue > 0;
+  const settled = calcSettledAmount(balanceValue, settlementPct);
+  const months = calcProgramLength(settled, monthlySavingsValue);
 
   const handleSave = async () => {
     await updateCreditor.mutateAsync({ id: creditor.id, updates: {
       name: name.trim(),
       phone: phone.trim(),
-      balance: Number(balance),
+      balance: balanceValue,
       settlementPercentage: settlementPct,
-      monthlySavings: Number(monthlySavings),
+      monthlySavings: monthlySavingsValue,
     } });
     router.back();
   };
@@ -122,7 +132,7 @@ export default function EditCreditorScreen() {
                 <Text style={[styles.dollar, { color: colors.mutedForeground }]}>$</Text>
                 <TextInput
                   value={balance}
-                  onChangeText={setBalance}
+                  onChangeText={(value) => setBalance(formatMoneyInput(value))}
                   placeholder="10,000"
                   placeholderTextColor={colors.mutedForeground}
                   keyboardType="numeric"
@@ -165,7 +175,9 @@ export default function EditCreditorScreen() {
                 <Text style={[styles.dollar, { color: colors.mutedForeground }]}>$</Text>
                 <TextInput
                   value={monthlySavings}
-                  onChangeText={setMonthlySavings}
+                  onChangeText={(value) =>
+                    setMonthlySavings(formatMoneyInput(value))
+                  }
                   placeholder="500"
                   placeholderTextColor={colors.mutedForeground}
                   keyboardType="numeric"
@@ -176,14 +188,14 @@ export default function EditCreditorScreen() {
             </View>
 
             {/* Preview */}
-            {Number(balance) > 0 && (
+            {balanceValue > 0 && (
               <View style={[styles.preview, { backgroundColor: colors.secondary, borderColor: colors.primary }]}>
                 <Text style={[styles.previewTitle, { color: colors.primary }]}>Updated Preview</Text>
                 <View style={styles.previewRow}>
                   <View style={styles.previewItem}>
                     <Text style={[styles.previewLabel, { color: colors.mutedForeground }]}>Owed</Text>
                     <Text style={[styles.previewValue, { color: colors.foreground }]}>
-                      {formatCurrency(Number(balance))}
+                      {formatCurrency(balanceValue)}
                     </Text>
                   </View>
                   <View style={styles.previewItem}>
@@ -232,7 +244,7 @@ const styles = StyleSheet.create({
   perMo: { fontSize: 13, fontFamily: "Inter_400Regular" },
   pctRow: { flexDirection: "row", gap: 8 },
   pctBtn: { flex: 1, paddingVertical: 10, borderRadius: 8, borderWidth: 1, alignItems: "center" },
-  pctText: { fontSize: 13, fontFamily: "Inter_600SemiBold" },
+  pctText: { fontSize: 13, fontFamily: "Inter_700Bold" },
   preview: { borderRadius: 12, borderWidth: 1, padding: 14, gap: 10 },
   previewTitle: { fontSize: 13, fontFamily: "Inter_700Bold" },
   previewRow: { flexDirection: "row", justifyContent: "space-around" },

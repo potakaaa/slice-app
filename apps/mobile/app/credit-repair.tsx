@@ -260,7 +260,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  saveBtnText: { color: "#FFFFFF", fontSize: 13, fontFamily: "Inter_600SemiBold" },
+  saveBtnText: { color: "#FFFFFF", fontSize: 13, fontFamily: "Inter_700Bold" },
   scoreRange: { fontSize: 12, fontFamily: "Inter_400Regular" },
   progressHeader: {
     flexDirection: "row",
@@ -272,7 +272,7 @@ const styles = StyleSheet.create({
   progressLabel: { fontSize: 12, fontFamily: "Inter_400Regular", marginTop: 6 },
   catRow: { gap: 8 },
   catBtn: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20 },
-  catText: { fontSize: 13, fontFamily: "Inter_500Medium" },
+  catText: { fontSize: 13, fontFamily: "Inter_700Bold" },
   taskCard: {
     flexDirection: "row",
     alignItems: "flex-start",

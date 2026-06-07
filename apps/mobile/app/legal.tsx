@@ -53,7 +53,7 @@ const DISCLAIMERS = [
   {
     icon: "lock",
     title: "Data Privacy",
-    text: "Your financial data is stored locally on your device and never leaves your phone. SLICE does not transmit your personal financial information to any server or third party.",
+    text: "SLICE stores account and program data with service providers needed to operate the app, including Supabase and enabled AI, subscription, email, and scheduling providers. Review the Privacy Policy for details about collection, use, and sharing.",
   },
 ];
 
@@ -162,8 +162,8 @@ const styles = StyleSheet.create({
   finalTitle: { fontSize: 16, fontFamily: "Inter_700Bold", color: "#FFFFFF" },
   finalText: {
     fontSize: 13,
-    fontFamily: "Inter_400Regular",
-    color: "rgba(255,255,255,0.9)",
+    fontFamily: "Inter_700Bold",
+    color: "#FFFFFF",
     lineHeight: 22,
   },
   docsRow: { gap: 10 },

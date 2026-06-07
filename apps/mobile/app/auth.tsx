@@ -17,22 +17,51 @@ import { Button } from "@/components/Button";
 import { SliceLogo } from "@/components/SliceLogo";
 import { useColors } from "@/hooks/useColors";
 import { useAuth } from "@/lib/auth";
+import { useAppStore } from "@/store/useAppStore";
 
 type Mode = "signin" | "signup";
 
 export default function AuthScreen() {
   const colors = useColors();
   const { session, signIn, signUp } = useAuth();
-  const [mode, setMode] = useState<Mode>("signin");
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
+  const draftProfile = useAppStore((state) => state.profile);
+  const onboardingReadyForAuth = useAppStore((state) => state.onboardingReadyForAuth);
+  const awaitingEmailConfirmation = useAppStore(
+    (state) => state.awaitingEmailConfirmation
+  );
+  const setAwaitingEmailConfirmation = useAppStore(
+    (state) => state.setAwaitingEmailConfirmation
+  );
+  const clearDraft = useAppStore((state) => state.clearDraft);
+  const [mode, setMode] = useState<Mode>(
+    onboardingReadyForAuth ? "signup" : "signin"
+  );
+  const [name, setName] = useState(draftProfile.name);
+  const [email, setEmail] = useState(draftProfile.email);
   const [password, setPassword] = useState("");
+  const [confirmationSignIn, setConfirmationSignIn] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    if (session) router.replace("/");
-  }, [session]);
+    if (!name && draftProfile.name) setName(draftProfile.name);
+    if (!email && draftProfile.email) setEmail(draftProfile.email);
+  }, [draftProfile.email, draftProfile.name, email, name]);
+
+  useEffect(() => {
+    if (!session) return;
+    if (awaitingEmailConfirmation && onboardingReadyForAuth) {
+      setAwaitingEmailConfirmation(false);
+      router.replace("/onboarding/complete");
+    } else if (!onboardingReadyForAuth) {
+      router.replace("/");
+    }
+  }, [
+    awaitingEmailConfirmation,
+    onboardingReadyForAuth,
+    session,
+    setAwaitingEmailConfirmation,
+  ]);
 
   const canSubmit =
     email.trim().includes("@") &&
@@ -45,10 +74,22 @@ export default function AuthScreen() {
     try {
       if (mode === "signin") {
         await signIn(email, password);
+        if (awaitingEmailConfirmation && onboardingReadyForAuth) {
+          setAwaitingEmailConfirmation(false);
+          router.replace("/onboarding/complete");
+        } else {
+          clearDraft();
+          router.replace("/");
+        }
       } else {
-        await signUp(email, password, name);
+        const nextSession = await signUp(email, password, name);
+        if (!nextSession) {
+          setAwaitingEmailConfirmation(true);
+          return;
+        }
+        setAwaitingEmailConfirmation(false);
+        router.replace("/onboarding/complete");
       }
-      router.replace("/");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Authentication failed");
     } finally {
@@ -61,7 +102,7 @@ export default function AuthScreen() {
   return (
     <View style={styles.container}>
       <LinearGradient
-        colors={["#FF6B35", "#FF8C5A"]}
+        colors={["#FF5A00", "#FF8A00"]}
         style={StyleSheet.absoluteFill}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
@@ -78,6 +119,31 @@ export default function AuthScreen() {
           </View>
 
           <View style={styles.panel}>
+            {awaitingEmailConfirmation && !confirmationSignIn ? (
+              <View style={styles.confirmation}>
+                <View style={[styles.confirmationIcon, { backgroundColor: colors.secondary }]}>
+                  <Feather name="mail" size={24} color={colors.primary} />
+                </View>
+                <Text style={[styles.confirmationTitle, { color: colors.foreground }]}>
+                  Check your email
+                </Text>
+                <Text style={[styles.confirmationText, { color: colors.mutedForeground }]}>
+                  Confirm {email || "your email address"}, then return to SLICE. Your program
+                  draft will be waiting.
+                </Text>
+                <Button
+                  label="Back to Sign In"
+                  variant="secondary"
+                  onPress={() => {
+                    setConfirmationSignIn(true);
+                    setMode("signin");
+                    setPassword("");
+                  }}
+                  fullWidth
+                />
+              </View>
+            ) : (
+              <>
             <View style={styles.modeRow}>
               {(["signin", "signup"] as Mode[]).map((item) => (
                 <Pressable
@@ -163,6 +229,8 @@ export default function AuthScreen() {
             <Text style={[styles.privacy, { color: colors.mutedForeground }]}>
               Your program data is stored securely in Supabase under your authenticated account.
             </Text>
+              </>
+            )}
           </View>
         </KeyboardAvoidingView>
       </SafeAreaView>
@@ -188,8 +256,8 @@ const styles = StyleSheet.create({
   },
   tagline: {
     fontSize: 15,
-    fontFamily: "Inter_400Regular",
-    color: "rgba(255,255,255,0.85)",
+    fontFamily: "Inter_600SemiBold",
+    color: "#FFFFFF",
     textAlign: "center",
   },
   panel: {
@@ -198,6 +266,21 @@ const styles = StyleSheet.create({
     padding: 18,
     gap: 14,
     marginBottom: Platform.OS === "web" ? 34 : 0,
+  },
+  confirmation: { alignItems: "center", gap: 12, paddingVertical: 8 },
+  confirmationIcon: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  confirmationTitle: { fontSize: 20, fontFamily: "Inter_700Bold" },
+  confirmationText: {
+    fontSize: 13,
+    fontFamily: "Inter_400Regular",
+    lineHeight: 20,
+    textAlign: "center",
   },
   modeRow: {
     flexDirection: "row",

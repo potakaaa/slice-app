@@ -79,7 +79,7 @@ export default function ProgramScreen() {
               <View style={styles.summaryDivider} />
               <View style={styles.summaryItem}>
                 <Text style={styles.summaryLabel}>Est. Savings</Text>
-                <Text style={[styles.summaryValue, { color: "#DCFCE7" }]}>
+                <Text style={styles.summaryValue}>
                   {formatCurrency(totalDebt - totalTarget)}
                 </Text>
               </View>
@@ -212,7 +212,7 @@ const styles = StyleSheet.create({
   summaryRow: { flexDirection: "row", alignItems: "center" },
   summaryItem: { flex: 1, alignItems: "center", gap: 4 },
   summaryDivider: { width: 1, height: 36, backgroundColor: "rgba(255,255,255,0.25)" },
-  summaryLabel: { color: "rgba(255,255,255,0.75)", fontSize: 11, fontFamily: "Inter_400Regular" },
+  summaryLabel: { color: "#FFFFFF", fontSize: 11, fontFamily: "Inter_700Bold" },
   summaryValue: { color: "#FFFFFF", fontSize: 15, fontFamily: "Inter_700Bold" },
   tableHeader: {
     flexDirection: "row",
@@ -236,7 +236,7 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     alignItems: "center",
   },
-  pctText: { fontSize: 11, fontFamily: "Inter_600SemiBold" },
+  pctText: { fontSize: 11, fontFamily: "Inter_700Bold" },
   savingsRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   savingsLabel: { fontSize: 12, fontFamily: "Inter_400Regular" },
   savingsBtns: { flexDirection: "row", gap: 8 },

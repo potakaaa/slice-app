@@ -8,8 +8,8 @@ type AuthContextValue = {
   loading: boolean;
   session: Session | null;
   user: User | null;
-  signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string, fullName?: string) => Promise<void>;
+  signIn: (email: string, password: string) => Promise<Session>;
+  signUp: (email: string, password: string, fullName?: string) => Promise<Session | null>;
   signOut: () => Promise<void>;
 };
 
@@ -40,15 +40,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email: email.trim(),
       password,
     });
     if (error) throw error;
+    if (!data.session) throw new Error("Sign in did not create a session");
+    return data.session;
   };
 
   const signUp = async (email: string, password: string, fullName?: string) => {
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email: email.trim(),
       password,
       options: {
@@ -56,6 +58,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       },
     });
     if (error) throw error;
+    return data.session;
   };
 
   const signOut = async () => {

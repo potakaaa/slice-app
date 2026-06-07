@@ -3,7 +3,7 @@ import { fail, ok, readJson } from "../_shared/errors.ts";
 import { requireAuth } from "../_shared/auth.ts";
 import { coachingBookingSchema } from "../_shared/schemas.ts";
 import { requireTier } from "../_shared/subscriptions.ts";
-import { createCalendlyBooking } from "../_shared/calendly.ts";
+import { getCalendlyScheduling } from "../_shared/calendly.ts";
 import { sendEmail } from "../_shared/email.ts";
 
 Deno.serve((req) => withCors(req, async () => {
@@ -12,9 +12,7 @@ Deno.serve((req) => withCors(req, async () => {
     const body = coachingBookingSchema.parse(await readJson(req));
     const tier = await requireTier(ctx.adminClient, ctx.user.id, "gold");
     const priority = tier === "platinum";
-    const calendly = await createCalendlyBooking({
-      name: ctx.user.email ?? "SLICE user",
-      email: ctx.user.email ?? "",
+    const calendly = getCalendlyScheduling({
       topic: body.topic,
       notes: body.notes,
       priority,
@@ -25,8 +23,8 @@ Deno.serve((req) => withCors(req, async () => {
       tier_at_booking: tier,
       topic: body.topic,
       notes: body.notes ?? null,
-      calendly_event_uri: calendly.uri,
-      starts_at: calendly.startsAt,
+      calendly_event_uri: calendly.url,
+      starts_at: null,
       priority,
       status: "pending",
     }).select().single();
@@ -38,7 +36,11 @@ Deno.serve((req) => withCors(req, async () => {
         html: `<p>Your coaching request for <strong>${body.topic}</strong> was received. Marc Feinberg's team will follow up with scheduling details.</p>`,
       });
     }
-    return ok({ booking: data, calendly });
+    return ok({
+      booking: data,
+      scheduling_url: calendly.url,
+      scheduling_available: calendly.available,
+    });
   } catch (error) {
     return fail(error);
   }

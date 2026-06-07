@@ -33,7 +33,7 @@ export function SummaryCard({
       <Feather
         name={icon}
         size={16}
-        color={accent ? "rgba(255,255,255,0.7)" : colors.mutedForeground}
+        color={accent ? "#FFFFFF" : colors.mutedForeground}
         style={styles.icon}
       />
       <Text
@@ -43,11 +43,11 @@ export function SummaryCard({
       >
         {value}
       </Text>
-      <Text style={[styles.label, { color: accent ? "rgba(255,255,255,0.75)" : colors.mutedForeground }]}>
+      <Text style={[styles.label, { color: accent ? "#FFFFFF" : colors.mutedForeground }]}>
         {label}
       </Text>
       {subtitle && (
-        <Text style={[styles.subtitle, { color: accent ? "rgba(255,255,255,0.6)" : colors.mutedForeground }]}>
+        <Text style={[styles.subtitle, { color: accent ? "#FFFFFF" : colors.mutedForeground }]}>
           {subtitle}
         </Text>
       )}
@@ -64,12 +64,12 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 11,
-    fontFamily: "Inter_500Medium",
+    fontFamily: "Inter_700Bold",
     marginTop: 2,
   },
   subtitle: {
     fontSize: 10,
-    fontFamily: "Inter_400Regular",
+    fontFamily: "Inter_700Bold",
     marginTop: 1,
   },
 });
