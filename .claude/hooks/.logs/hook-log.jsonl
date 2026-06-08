@@ -116,3 +116,4 @@
 {"ts":"2026-06-05T16:35:14.519Z","hook":"scout-block","event":"PreToolUse","tool":"Bash","target":"","note":"","dur":3,"status":"ok","exit":0,"error":""}
 {"ts":"2026-06-05T16:35:37.207Z","hook":"privacy-block","event":"PreToolUse","tool":"Bash","target":"","note":"","dur":3,"status":"ok","exit":0,"error":""}
 {"ts":"2026-06-05T16:35:37.210Z","hook":"scout-block","event":"PreToolUse","tool":"Bash","target":"","note":"","dur":4,"status":"ok","exit":0,"error":""}
+{"ts":"2026-06-08T02:37:36.061Z","hook":"session-init","event":"SessionStart","tool":"","target":"","note":"startup","dur":32,"status":"ok","exit":0,"error":""}

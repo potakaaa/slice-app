@@ -10,19 +10,11 @@ import {
 
 import { useColors } from "@/hooks/useColors";
 
-// ---------------------------------------------------------------------------
-// TODO LIST — replace every placeholder before publishing:
-//   1.  EFFECTIVE_DATE       e.g. "June 10, 2026"
-//   2.  CONTACT_EMAIL        e.g. "slice.cares@slice.com"
-//   3.  WEBSITE_URL          e.g. "https://slice.com"
-//   4.  LEGAL_BUSINESS_NAME  e.g. "Slice Technologies LLC"
-//   5.  MAILING_ADDRESS      e.g. "123 Main St, Los Angeles, CA 90001"
-// ---------------------------------------------------------------------------
-const EFFECTIVE_DATE = "[TODO: Date of Publish]";
-const CONTACT_EMAIL = "slice.cares@slice.com"; // TODO: confirm email
-const WEBSITE_URL = "slice.com"; // TODO: confirm URL
-const LEGAL_BUSINESS_NAME = "[TODO: Legal Business Name]";
-const MAILING_ADDRESS = "[TODO: Business Mailing Address]";
+const EFFECTIVE_DATE = "June 12, 2026";
+const CONTACT_EMAIL = "Marc@MarcFeinberg.com";
+const WEBSITE_URL = "https://slice.marcfeinberg.com";
+const LEGAL_BUSINESS_NAME = "Coach Marc LLC";
+const MAILING_ADDRESS = "2007 Cove Ln.\nNorth Palm Beach, FL 33408";
 
 interface Section {
   heading?: string;

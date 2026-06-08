@@ -267,7 +267,7 @@ export default function ProfileScreen() {
           <Card style={styles.links}>
             {[
               { label: "Legal Disclaimer", route: "/legal", icon: "file-text" },
-              { label: "Privacy Policy", route: "/legal", icon: "shield" },
+              { label: "Privacy Policy", route: "/privacy-policy", icon: "shield" },
             ].map((item) => (
               <Pressable
                 key={item.route + item.label}

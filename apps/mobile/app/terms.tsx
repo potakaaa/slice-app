@@ -10,23 +10,13 @@ import {
 
 import { useColors } from "@/hooks/useColors";
 
-// ---------------------------------------------------------------------------
-// TODO LIST — replace every placeholder before publishing:
-//   1.  EFFECTIVE_DATE       e.g. "June 10, 2026"
-//   2.  GOVERNING_STATE      e.g. "California"
-//   3.  CONTACT_EMAIL        e.g. "slice.cares@slice.com"
-//   4.  WEBSITE_URL          e.g. "https://slice.com"
-//   5.  PRIVACY_POLICY_URL   e.g. "https://slice.com/privacy"
-//   6.  LEGAL_BUSINESS_NAME  e.g. "Slice Technologies LLC"
-//   7.  MAILING_ADDRESS      e.g. "123 Main St, Los Angeles, CA 90001"
-// ---------------------------------------------------------------------------
-const EFFECTIVE_DATE = "[TODO: Date of Publish]";
-const GOVERNING_STATE = "[TODO: Insert State]";
-const CONTACT_EMAIL = "slice.cares@slice.com"; // TODO: confirm email
-const WEBSITE_URL = "slice.com"; // TODO: confirm URL
-const PRIVACY_POLICY_URL = "[TODO: Privacy Policy URL]";
-const LEGAL_BUSINESS_NAME = "[TODO: Legal Business Name]";
-const MAILING_ADDRESS = "[TODO: Business Mailing Address]";
+const EFFECTIVE_DATE = "June 12, 2026";
+const GOVERNING_STATE = "Florida";
+const CONTACT_EMAIL = "Marc@MarcFeinberg.com";
+const WEBSITE_URL = "https://slice.marcfeinberg.com";
+const PRIVACY_POLICY_URL = "https://slice.marcfeinberg.com/privacy-policy";
+const LEGAL_BUSINESS_NAME = "Coach Marc LLC";
+const MAILING_ADDRESS = "2007 Cove Ln.\nNorth Palm Beach, FL 33408";
 
 interface Section {
   heading?: string;

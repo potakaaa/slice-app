@@ -36,6 +36,16 @@ const MIME_TYPES = {
 };
 
 function getAppName() {
+  const appConfigPath = path.resolve(__dirname, "..", "app.config.js");
+  if (fs.existsSync(appConfigPath)) {
+    try {
+      const appConfig = require(appConfigPath);
+      return appConfig.expo?.name || "App Landing Page";
+    } catch {
+      return "App Landing Page";
+    }
+  }
+
   try {
     const appJsonPath = path.resolve(__dirname, "..", "app.json");
     const appJson = JSON.parse(fs.readFileSync(appJsonPath, "utf-8"));
