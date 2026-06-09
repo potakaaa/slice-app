@@ -80,7 +80,9 @@ export default function DashboardScreen() {
           </View>
         </View>
         <View style={styles.headerRight}>
-          <TierBadge tier={profile.tier} />
+          <Pressable onPress={() => router.push("/membership")} accessibilityRole="button">
+            <TierBadge tier={profile.tier} />
+          </Pressable>
           <Pressable onPress={() => router.push("/profile")} style={styles.profileBtn}>
             <Feather name="user" size={20} color={colors.foreground} />
           </Pressable>
@@ -103,6 +105,46 @@ export default function DashboardScreen() {
           </View>
         ) : (
           <>
+            {profile.tier === "free" ? (
+              <Pressable
+                onPress={() => router.push("/pricing")}
+                style={({ pressed }) => [
+                  styles.tierCard,
+                  { backgroundColor: colors.secondary, borderColor: colors.primary, opacity: pressed ? 0.85 : 1 },
+                ]}
+              >
+                <View style={styles.programPromptIcon}>
+                  <Feather name="zap" size={20} color={colors.primary} />
+                </View>
+                <View style={styles.programPromptText}>
+                  <Text style={[styles.programPromptEyebrow, { color: colors.primary }]}>
+                    Unlock AI tools
+                  </Text>
+                  <Text style={[styles.programPromptTitle, { color: colors.foreground }]}>
+                    AI strategy, scripts & coaching
+                  </Text>
+                  <Text style={[styles.programPromptDesc, { color: colors.mutedForeground }]}>
+                    Upgrade to negotiate with confidence and settle for less.
+                  </Text>
+                </View>
+                <Feather name="chevron-right" size={20} color={colors.primary} />
+              </Pressable>
+            ) : (
+              <Pressable
+                onPress={() => router.push("/membership")}
+                style={({ pressed }) => [
+                  styles.tierCard,
+                  { backgroundColor: colors.card, borderColor: colors.border, opacity: pressed ? 0.85 : 1 },
+                ]}
+              >
+                <TierBadge tier={profile.tier} size="lg" gradient />
+                <Text style={[styles.tierCardText, { color: colors.foreground }]}>
+                  View your member benefits
+                </Text>
+                <Feather name="chevron-right" size={20} color={colors.mutedForeground} />
+              </Pressable>
+            )}
+
             {shouldPromptProgram && (
               <Pressable
                 onPress={() => router.push("/savings-planner")}
@@ -330,6 +372,15 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 14,
   },
+  tierCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 14,
+  },
+  tierCardText: { flex: 1, fontSize: 14, fontFamily: "Inter_600SemiBold" },
   programPromptIcon: {
     width: 40,
     height: 40,

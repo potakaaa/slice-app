@@ -57,6 +57,7 @@ function RootLayoutNav() {
       <Stack.Screen name="credit-repair" options={{ title: "Credit Repair" }} />
       <Stack.Screen name="coaching" options={{ title: "Coaching with Marc" }} />
       <Stack.Screen name="pricing" options={{ title: "Upgrade Plan" }} />
+      <Stack.Screen name="membership" options={{ title: "Membership" }} />
       <Stack.Screen name="profile" options={{ title: "Profile & Settings" }} />
       <Stack.Screen name="legal" options={{ title: "Legal Disclaimer" }} />
       <Stack.Screen name="privacy-policy" options={{ title: "Privacy Policy" }} />

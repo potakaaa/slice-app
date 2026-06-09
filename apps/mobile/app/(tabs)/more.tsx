@@ -34,6 +34,7 @@ const MENU_GROUPS: { title: string; items: MenuItem[] }[] = [
   {
     title: "Account",
     items: [
+      { icon: "award", label: "Membership", route: "/membership", desc: "Your plan, benefits, and usage" },
       { icon: "zap", label: "Upgrade Plan", route: "/pricing", desc: "Silver, Gold, and Platinum plans" },
       { icon: "user", label: "Profile & Settings", route: "/profile", desc: "Edit your info and preferences" },
     ],

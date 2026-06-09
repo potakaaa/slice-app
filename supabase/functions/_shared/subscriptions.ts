@@ -9,6 +9,7 @@ export function hasTier(current: Tier, required: Tier): boolean {
   return rank[current] >= rank[required];
 }
 
+// Keep in sync with AI_DAILY_LIMITS in apps/mobile/lib/tierBenefits.ts (client mirror).
 export function aiDailyLimit(tier: Tier): number {
   if (tier === "silver") return 30;
   if (tier === "gold") return 100;

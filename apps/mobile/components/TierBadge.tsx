@@ -1,38 +1,85 @@
+import { Feather } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 
+import { TIER_META } from "@/lib/tierBenefits";
 import type { SubscriptionTier } from "@/types";
 
-const TIER_CONFIG: Record<SubscriptionTier, { bg: string; text: string; label: string }> = {
-  free: { bg: "#E5E7EB", text: "#6B7280", label: "FREE" },
-  silver: { bg: "#E8EBF0", text: "#64748B", label: "SILVER" },
-  gold: { bg: "#FEF3C7", text: "#B45309", label: "GOLD" },
-  platinum: { bg: "#EDE9FE", text: "#7C3AED", label: "PLATINUM" },
+// Soft chip background per tier (used by the default, non-gradient variant).
+const CHIP_BG: Record<SubscriptionTier, string> = {
+  free: "#E5E7EB",
+  silver: "#E8EBF0",
+  gold: "#FEF3C7",
+  platinum: "#EDE9FE",
 };
 
 interface TierBadgeProps {
   tier: SubscriptionTier;
+  size?: "sm" | "lg";
+  /** Render a filled gradient badge with white text for hero/prestige usage. */
+  gradient?: boolean;
 }
 
-export function TierBadge({ tier }: TierBadgeProps) {
-  const config = TIER_CONFIG[tier];
+export function TierBadge({ tier, size = "sm", gradient = false }: TierBadgeProps) {
+  const meta = TIER_META[tier];
+  const large = size === "lg";
+  const iconSize = large ? 16 : 11;
+
+  if (gradient) {
+    return (
+      <LinearGradient
+        colors={meta.gradient}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={[styles.badge, large ? styles.badgeLg : styles.badgeSm]}
+      >
+        <Feather name={meta.icon} size={iconSize} color="#FFFFFF" />
+        <Text style={[styles.text, large ? styles.textLg : styles.textSm, { color: "#FFFFFF" }]}>
+          {meta.label.toUpperCase()}
+        </Text>
+      </LinearGradient>
+    );
+  }
+
   return (
-    <View style={[styles.badge, { backgroundColor: config.bg }]}>
-      <Text style={[styles.text, { color: config.text }]}>{config.label}</Text>
+    <View
+      style={[
+        styles.badge,
+        large ? styles.badgeLg : styles.badgeSm,
+        { backgroundColor: CHIP_BG[tier] },
+      ]}
+    >
+      <Feather name={meta.icon} size={iconSize} color={meta.color} />
+      <Text style={[styles.text, large ? styles.textLg : styles.textSm, { color: meta.color }]}>
+        {meta.label.toUpperCase()}
+      </Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   badge: {
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "flex-start",
+  },
+  badgeSm: {
+    gap: 5,
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 6,
-    alignSelf: "flex-start",
+  },
+  badgeLg: {
+    gap: 7,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 9,
   },
   text: {
-    fontSize: 11,
     fontFamily: "Inter_700Bold",
     letterSpacing: 0.8,
   },
+  textSm: { fontSize: 11 },
+  textLg: { fontSize: 13 },
 });

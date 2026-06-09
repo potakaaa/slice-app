@@ -242,14 +242,12 @@ export default function ProfileScreen() {
           {/* Subscription */}
           <Card>
             <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Subscription</Text>
-            <View style={styles.tierRow}>
+            <Pressable style={styles.tierRow} onPress={() => router.push("/membership")}>
               <TierBadge tier={profile.tier} />
-              <Pressable onPress={() => router.push("/pricing")}>
-                <Text style={[styles.upgradeLink, { color: colors.primary }]}>
-                  {profile.tier === "platinum" ? "Manage Plan" : "Upgrade Plan"}
-                </Text>
-              </Pressable>
-            </View>
+              <Text style={[styles.upgradeLink, { color: colors.primary }]}>
+                {profile.tier === "free" ? "View Plans" : "View Membership"}
+              </Text>
+            </Pressable>
             <View style={styles.subscriptionLinks}>
               <Pressable
                 onPress={() => handleSubscriptionAction("restore")}

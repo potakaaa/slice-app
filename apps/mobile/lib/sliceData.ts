@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
 import { createSliceApiClient } from "@/lib/sliceApi";
 import { supabase } from "@/lib/supabase";
+import { AI_DAILY_LIMITS } from "@/lib/tierBenefits";
 import type {
   CoachingBooking,
   ContactLog,
@@ -296,6 +297,63 @@ export function useUpsertProfile() {
       queryClient.invalidateQueries({ queryKey: ["profile", user?.id] });
     },
   });
+}
+
+/**
+ * The AI tools that consume the per-tool daily request allowance. The `key`
+ * values match the `feature` strings the backend writes to `rate_limits`
+ * (see supabase/functions/_shared/rateLimit.ts).
+ */
+export const AI_USAGE_FEATURES = [
+  { key: "ai_strategy", label: "AI Strategy" },
+  { key: "ai_script", label: "Call Scripts" },
+  { key: "zest_chat", label: "Zest Coach" },
+] as const;
+
+export type AiUsageFeature = {
+  key: string;
+  label: string;
+  used: number;
+  limit: number;
+};
+
+/**
+ * Today's AI usage per tool for the signed-in user. Reads the RLS-protected
+ * `rate_limits` table directly; the daily limit comes from the client mirror
+ * in tierBenefits.ts keyed by the user's tier.
+ */
+export function useAiUsage() {
+  const { user } = useAuth();
+  const { profile } = useProfile();
+  const limit = AI_DAILY_LIMITS[profile.tier];
+
+  const query = useQuery({
+    queryKey: ["ai-usage", user?.id],
+    enabled: Boolean(user),
+    queryFn: async () => {
+      const today = new Date().toISOString().slice(0, 10);
+      const { data, error } = await supabase
+        .from("rate_limits")
+        .select("feature,count")
+        .eq("window_start", today);
+      if (error) throw error;
+      const counts: Record<string, number> = {};
+      for (const row of (data as { feature: string; count: number }[]) ?? []) {
+        counts[row.feature] = row.count;
+      }
+      return counts;
+    },
+  });
+
+  const counts = query.data ?? {};
+  const features: AiUsageFeature[] = AI_USAGE_FEATURES.map((feature) => ({
+    key: feature.key,
+    label: feature.label,
+    used: counts[feature.key] ?? 0,
+    limit,
+  }));
+
+  return { ...query, features, limit };
 }
 
 export function useCreditors() {
