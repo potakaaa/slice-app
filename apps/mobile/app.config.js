@@ -37,9 +37,9 @@ module.exports = {
     userInterfaceStyle: "light",
     newArchEnabled: true,
     splash: {
-      image: "./assets/images/icon.png",
+      image: "./assets/images/splash-icon.png",
       resizeMode: "contain",
-      backgroundColor: "#FF6B35",
+      backgroundColor: "#FFFFFF",
     },
     ios: {
       supportsTablet: false,
@@ -105,9 +105,13 @@ module.exports = {
     },
     android: {
       package: "com.slice.debtresolution",
+      adaptiveIcon: {
+        foregroundImage: "./assets/images/adaptive-icon.png",
+        backgroundColor: "#FFFFFF",
+      },
     },
     web: {
-      favicon: "./assets/images/icon.png",
+      favicon: "./assets/images/favicon.png",
     },
     plugins,
     experiments: {
@@ -117,7 +121,7 @@ module.exports = {
     extra: {
       appVariant: appVariant || buildProfile || "local",
       eas: {
-        projectId: env["EAS_PROJECT_ID"] || undefined,
+        projectId: env["EAS_PROJECT_ID"] || "6c33f5c1-c918-4138-86f9-d9fe48a47c45",
       },
     },
   },

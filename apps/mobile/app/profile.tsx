@@ -222,6 +222,15 @@ export default function ProfileScreen() {
                 {formatCurrency(profile.defaultMonthlySavings)}/mo
               </Text>
             </View>
+            <Pressable style={styles.infoRow} onPress={() => router.push("/add-to-fund" as any)}>
+              <Text style={[styles.infoLabel, { color: colors.mutedForeground }]}>Settlement Fund</Text>
+              <View style={styles.fundValue}>
+                <Text style={[styles.infoValue, { color: colors.foreground }]}>
+                  {formatCurrency(profile.currentSavedCash)}
+                </Text>
+                <Text style={[styles.fundAdd, { color: colors.primary }]}>Add</Text>
+              </View>
+            </Pressable>
             <View style={styles.infoRow}>
               <Text style={[styles.infoLabel, { color: colors.mutedForeground }]}>Credit Score</Text>
               <Text style={[styles.infoValue, { color: colors.foreground }]}>
@@ -344,6 +353,8 @@ const styles = StyleSheet.create({
   },
   infoLabel: { fontSize: 13, fontFamily: "Inter_400Regular" },
   infoValue: { fontSize: 13, fontFamily: "Inter_600SemiBold" },
+  fundValue: { flexDirection: "row", alignItems: "center", gap: 10 },
+  fundAdd: { fontSize: 13, fontFamily: "Inter_700Bold" },
   tierRow: { flexDirection: "row", alignItems: "center", gap: 12 },
   subscriptionLinks: { flexDirection: "row", flexWrap: "wrap", gap: 16, marginTop: 14 },
   upgradeLink: { fontSize: 14, fontFamily: "Inter_600SemiBold" },

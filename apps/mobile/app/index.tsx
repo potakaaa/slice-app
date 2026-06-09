@@ -1,7 +1,8 @@
 import { router } from "expo-router";
 import React, { useEffect } from "react";
-import { ActivityIndicator, View } from "react-native";
+import { View } from "react-native";
 
+import { SkeletonScreen } from "@/components/Skeleton";
 import { useAuth } from "@/lib/auth";
 import { useProfile } from "@/lib/sliceData";
 import { useAppStore } from "@/store/useAppStore";
@@ -41,8 +42,8 @@ export default function Index() {
   ]);
 
   return (
-    <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: "#FFFFFF" }}>
-      <ActivityIndicator size="large" color="#FF5A00" />
+    <View style={{ flex: 1, backgroundColor: "#FFFFFF", justifyContent: "center" }}>
+      <SkeletonScreen />
     </View>
   );
 }

@@ -3,6 +3,7 @@ import { router } from "expo-router";
 import React, { createContext, useContext, useEffect, useState } from "react";
 
 import { supabase } from "@/lib/supabase";
+import { useAppStore } from "@/store/useAppStore";
 
 type AuthContextValue = {
   loading: boolean;
@@ -64,6 +65,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signOut = async () => {
     const { error } = await supabase.auth.signOut();
     if (error) throw error;
+    // Drop the local onboarding draft so the next user who signs up on this
+    // device does not inherit a previous account's program data or get routed
+    // straight to /onboarding/complete via a stale onboardingReadyForAuth flag.
+    useAppStore.getState().clearDraft();
     router.replace("/auth");
   };
 

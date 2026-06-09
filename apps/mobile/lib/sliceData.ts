@@ -5,11 +5,15 @@ import { createSliceApiClient } from "@/lib/sliceApi";
 import { supabase } from "@/lib/supabase";
 import type {
   CoachingBooking,
+  ContactLog,
+  ContactOutcome,
   Creditor,
   CreditRepairTask,
   DebtProgram,
+  NegotiationScript,
   PrimaryGoal,
   SavingsTrackerMonth,
+  ScriptTone,
   SubscriptionTier,
   UserProfile,
 } from "@/types";
@@ -22,6 +26,7 @@ type ProfileRow = {
   credit_score: number | null;
   default_settlement_percentage: number | string | null;
   default_monthly_savings: number | string | null;
+  current_saved_cash: number | string | null;
   tier: SubscriptionTier;
   onboarding_complete: boolean;
 };
@@ -55,6 +60,28 @@ type CoachingBookingRow = {
   created_at: string;
 };
 
+type ContactLogRow = {
+  id: string;
+  creditor_id: string;
+  contact_date: string;
+  outcome: string;
+  amount_offered: number | string | null;
+  follow_up_date: string | null;
+  notes: string | null;
+};
+
+type NegotiationScriptRow = {
+  id: string;
+  creditor_id: string;
+  tone: string;
+  script: {
+    tone?: string;
+    sections?: Record<string, string>;
+    reminders?: string[];
+  } | null;
+  created_at: string;
+};
+
 type AggregateProgramApiResponse = {
   program: {
     id: string;
@@ -83,6 +110,7 @@ export const DEFAULT_PROFILE: UserProfile = {
   primaryGoal: "settle",
   defaultSettlementPercentage: 0.5,
   defaultMonthlySavings: 500,
+  currentSavedCash: 0,
   tier: "free",
   onboardingComplete: false,
 };
@@ -102,6 +130,7 @@ export function mapProfile(row: ProfileRow | null | undefined): UserProfile {
     primaryGoal: row.primary_goal ?? "settle",
     defaultSettlementPercentage: toNumber(row.default_settlement_percentage, 0.5),
     defaultMonthlySavings: toNumber(row.default_monthly_savings, 500),
+    currentSavedCash: toNumber(row.current_saved_cash, 0),
     tier: row.tier,
     onboardingComplete: row.onboarding_complete,
   };
@@ -138,6 +167,29 @@ function mapBooking(row: CoachingBookingRow): CoachingBooking {
     notes: row.notes ?? "",
     date: row.starts_at ?? undefined,
     status: row.status,
+    createdAt: row.created_at,
+  };
+}
+
+function mapContactLog(row: ContactLogRow): ContactLog {
+  return {
+    id: row.id,
+    creditorId: row.creditor_id,
+    contactDate: row.contact_date,
+    outcome: row.outcome as ContactOutcome,
+    amountOffered: row.amount_offered == null ? null : toNumber(row.amount_offered),
+    followUpDate: row.follow_up_date,
+    notes: row.notes ?? "",
+  };
+}
+
+function mapNegotiationScript(row: NegotiationScriptRow): NegotiationScript {
+  return {
+    id: row.id,
+    creditorId: row.creditor_id,
+    tone: row.tone as ScriptTone,
+    sections: row.script?.sections ?? {},
+    reminders: row.script?.reminders ?? [],
     createdAt: row.created_at,
   };
 }
@@ -234,6 +286,7 @@ export function useUpsertProfile() {
         credit_score: updates.creditScore && updates.creditScore > 0 ? updates.creditScore : undefined,
         default_settlement_percentage: updates.defaultSettlementPercentage,
         default_monthly_savings: updates.defaultMonthlySavings,
+        current_saved_cash: updates.currentSavedCash,
         onboarding_complete: updates.onboardingComplete,
         terms_accepted: updates.termsAccepted,
         privacy_policy_accepted: updates.privacyAccepted,
@@ -382,6 +435,79 @@ export function useCoachingBookings() {
   return {
     ...query,
     coachingBookings: query.data ?? [],
+  };
+}
+
+export function useContactLogs(creditorId: string | undefined) {
+  const { user } = useAuth();
+  const query = useQuery({
+    queryKey: ["contact-logs", user?.id, creditorId],
+    enabled: Boolean(user) && Boolean(creditorId),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("creditor_contact_logs")
+        .select("id,creditor_id,contact_date,outcome,amount_offered,follow_up_date,notes")
+        .eq("creditor_id", creditorId as string)
+        .order("contact_date", { ascending: false });
+      if (error) throw error;
+      return (data as ContactLogRow[]).map(mapContactLog);
+    },
+  });
+
+  return {
+    ...query,
+    contactLogs: query.data ?? [],
+  };
+}
+
+export function useCreateContactLog() {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: async (input: {
+      creditorId: string;
+      outcome: ContactOutcome;
+      amountOffered: number | null;
+      followUpDate: string | null;
+      notes: string;
+    }) => {
+      if (!user) throw new Error("User is required");
+      const { error } = await supabase.from("creditor_contact_logs").insert({
+        user_id: user.id,
+        creditor_id: input.creditorId,
+        outcome: input.outcome,
+        amount_offered: input.amountOffered,
+        follow_up_date: input.followUpDate,
+        notes: input.notes || null,
+      });
+      if (error) throw error;
+    },
+    onSuccess: (_data, input) => {
+      queryClient.invalidateQueries({ queryKey: ["contact-logs", user?.id, input.creditorId] });
+    },
+  });
+}
+
+export function useNegotiationScripts(creditorId: string | undefined) {
+  const { user } = useAuth();
+  const query = useQuery({
+    queryKey: ["negotiation-scripts", user?.id, creditorId],
+    enabled: Boolean(user) && Boolean(creditorId),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("negotiation_scripts")
+        .select("id,creditor_id,tone,script,created_at")
+        .eq("creditor_id", creditorId as string)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return (data as NegotiationScriptRow[]).map(mapNegotiationScript);
+    },
+  });
+
+  return {
+    ...query,
+    scripts: query.data ?? [],
   };
 }
 

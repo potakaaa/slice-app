@@ -2,6 +2,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import React, { useEffect } from "react";
 import {
+  Alert,
   Platform,
   SafeAreaView,
   ScrollView,
@@ -14,9 +15,11 @@ import * as Haptics from "expo-haptics";
 import { Button } from "@/components/Button";
 import { SliceLogo } from "@/components/SliceLogo";
 import { useAuth } from "@/lib/auth";
+import { integrationMessage } from "@/lib/integrationErrors";
 import { useCreateCreditor, useUpsertProfile } from "@/lib/sliceData";
 import { useAppStore } from "@/store/useAppStore";
 import {
+  calcSettlementReadiness,
   formatCurrency,
   getMaxProgramLength,
   getTotalDebt,
@@ -27,6 +30,7 @@ export default function OnboardingComplete() {
   const { session } = useAuth();
   const creditors = useAppStore((s) => s.creditors);
   const profile = useAppStore((s) => s.profile);
+  const onboardingReadyForAuth = useAppStore((s) => s.onboardingReadyForAuth);
   const clearDraft = useAppStore((s) => s.clearDraft);
   const createCreditor = useCreateCreditor();
   const upsertProfile = useUpsertProfile();
@@ -35,38 +39,68 @@ export default function OnboardingComplete() {
   const totalTarget = getTotalSettlementTarget(creditors);
   const savings = totalDebt - totalTarget;
   const months = getMaxProgramLength(creditors);
+  const readiness = calcSettlementReadiness(
+    creditors,
+    profile.currentSavedCash,
+    profile.defaultMonthlySavings
+  );
+  const readinessText = readiness.isReadyNow
+    ? "You may be settlement-ready now — enough saved to make your first offer."
+    : readiness.daysUntilReady != null
+      ? `You may be settlement-ready in ${readiness.daysUntilReady} days — save about ${formatCurrency(readiness.dailySetAside)}/day.`
+      : null;
 
   useEffect(() => {
     if (!session) {
       router.replace("/auth");
       return;
     }
+    // This screen summarizes a finished onboarding draft. If the user reached it
+    // without completing onboarding (e.g. a direct sign-up), send them through
+    // the flow instead of showing an empty/stale "Your Program Is Ready".
+    if (!onboardingReadyForAuth || creditors.length === 0) {
+      router.replace("/onboarding");
+      return;
+    }
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-  }, [session]);
+  }, [session, onboardingReadyForAuth, creditors.length]);
 
   const handleStart = async () => {
     if (!session) {
       router.replace("/auth");
       return;
     }
-    await upsertProfile.mutateAsync({
-      ...profile,
-      onboardingComplete: true,
-      termsAccepted: true,
-      privacyAccepted: true,
-    });
-    for (const [index, creditor] of creditors.entries()) {
-      await createCreditor.mutateAsync({
-        name: creditor.name,
-        phone: creditor.phone,
-        balance: creditor.balance,
-        settlementPercentage: creditor.settlementPercentage,
-        monthlySavings: creditor.monthlySavings,
-        priority: index + 1,
+    try {
+      await upsertProfile.mutateAsync({
+        ...profile,
+        onboardingComplete: true,
+        termsAccepted: true,
+        privacyAccepted: true,
       });
+      for (const [index, creditor] of creditors.entries()) {
+        await createCreditor.mutateAsync({
+          name: creditor.name,
+          phone: creditor.phone,
+          balance: creditor.balance,
+          settlementPercentage: creditor.settlementPercentage,
+          monthlySavings: creditor.monthlySavings,
+          priority: index + 1,
+        });
+      }
+      // Navigate before clearing the draft: clearing flips onboardingReadyForAuth
+      // and empties creditors, which the redirect guard above would otherwise act
+      // on and bounce this screen back to /onboarding mid-success.
+      router.replace("/(tabs)");
+      clearDraft();
+    } catch (error) {
+      Alert.alert(
+        "Couldn't start your program",
+        integrationMessage(
+          error,
+          "Something went wrong setting up your program. Please try again.",
+        ),
+      );
     }
-    clearDraft();
-    router.replace("/(tabs)");
   };
 
   const topPad = Platform.OS === "web" ? 67 : 0;
@@ -121,6 +155,12 @@ export default function OnboardingComplete() {
               <Text style={styles.timelineMonths}>
                 {months} months
               </Text>
+            </View>
+          )}
+
+          {readinessText && (
+            <View style={styles.readiness}>
+              <Text style={styles.readinessText}>{readinessText}</Text>
             </View>
           )}
 
@@ -229,6 +269,19 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontSize: 32,
     fontFamily: "Inter_700Bold",
+  },
+  readiness: {
+    backgroundColor: "rgba(255,255,255,0.15)",
+    borderRadius: 12,
+    paddingHorizontal: 18,
+    paddingVertical: 16,
+  },
+  readinessText: {
+    color: "#FFFFFF",
+    fontSize: 15,
+    fontFamily: "Inter_700Bold",
+    lineHeight: 22,
+    textAlign: "center",
   },
   bullets: { gap: 14, paddingHorizontal: 2 },
   bullet: { flexDirection: "row", gap: 12, alignItems: "flex-start" },

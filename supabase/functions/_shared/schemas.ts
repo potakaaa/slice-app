@@ -10,6 +10,7 @@ export const profileUpsertSchema = z.object({
   credit_score: z.number().int().min(300).max(850).optional(),
   default_settlement_percentage: z.number().min(0.01).max(1).optional(),
   default_monthly_savings: z.number().min(0).optional(),
+  current_saved_cash: z.number().min(0).optional(),
   revenuecat_app_user_id: z.string().trim().max(200).optional(),
   privacy_policy_version: z.string().trim().max(40).optional(),
   privacy_policy_accepted: z.boolean().optional(),

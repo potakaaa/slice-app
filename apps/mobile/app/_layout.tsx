@@ -16,9 +16,11 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AuthProvider } from "@/lib/auth";
+import { initCrashReporting, reportError } from "@/lib/crashReporting";
 import { RevenueCatProvider } from "@/lib/revenueCat";
 
 SplashScreen.preventAutoHideAsync();
+initCrashReporting();
 
 const queryClient = new QueryClient();
 
@@ -38,9 +40,18 @@ function RootLayoutNav() {
         name="creditor/edit/[id]"
         options={{ title: "Edit Creditor", presentation: "modal" }}
       />
+      <Stack.Screen
+        name="creditor/log-call/[id]"
+        options={{ title: "Log a Call", presentation: "modal" }}
+      />
+      <Stack.Screen
+        name="add-to-fund"
+        options={{ title: "Add to Settlement Fund", presentation: "modal" }}
+      />
       <Stack.Screen name="ai/strategy/[id]" options={{ title: "AI Strategy" }} />
       <Stack.Screen name="ai/script/[id]" options={{ title: "AI Script" }} />
       <Stack.Screen name="calculator" options={{ title: "Settlement Calculator" }} />
+      <Stack.Screen name="what-if" options={{ title: "What-If Simulator" }} />
       <Stack.Screen name="savings-planner" options={{ title: "Savings Planner" }} />
       <Stack.Screen name="snowball" options={{ title: "Snowball Timeline" }} />
       <Stack.Screen name="credit-repair" options={{ title: "Credit Repair" }} />
@@ -72,7 +83,9 @@ export default function RootLayout() {
 
   return (
     <SafeAreaProvider>
-      <ErrorBoundary>
+      <ErrorBoundary
+        onError={(error, componentStack) => reportError(error, { componentStack })}
+      >
         <QueryClientProvider client={queryClient}>
           <AuthProvider>
             <RevenueCatProvider>

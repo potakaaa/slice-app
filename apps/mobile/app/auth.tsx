@@ -88,7 +88,14 @@ export default function AuthScreen() {
           return;
         }
         setAwaitingEmailConfirmation(false);
-        router.replace("/onboarding/complete");
+        // Only jump to the program summary when the user actually completed the
+        // onboarding flow first. A direct sign-up with no draft must go through
+        // onboarding (routed by "/") instead of a half-empty complete screen.
+        if (onboardingReadyForAuth) {
+          router.replace("/onboarding/complete");
+        } else {
+          router.replace("/");
+        }
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Authentication failed");

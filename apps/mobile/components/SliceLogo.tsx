@@ -1,36 +1,41 @@
 import React from "react";
-import { View } from "react-native";
-import Svg, { Circle, Path, G } from "react-native-svg";
+import { Image, View } from "react-native";
 
 interface SliceLogoProps {
+  /** Outer badge dimension in px. */
   size?: number;
+  /** Render just the mark with no white badge background. */
+  bare?: boolean;
 }
 
-export function SliceLogo({ size = 64 }: SliceLogoProps) {
-  const r = size / 2;
+export function SliceLogo({ size = 64, bare = false }: SliceLogoProps) {
+  const mark = (
+    <Image
+      source={require("../assets/logo/slice-logo-mark-512.png")}
+      style={{ width: bare ? size : size * 0.74, height: bare ? size : size * 0.74 }}
+      resizeMode="contain"
+      accessibilityRole="image"
+      accessibilityLabel="SLICE logo"
+    />
+  );
+
+  if (bare) return mark;
+
+  // Rounded, bordered white badge matching the app icon.
   return (
-    <View style={{ width: size, height: size }}>
-      <Svg width={size} height={size} viewBox="0 0 100 100">
-        {/* Background circle */}
-        <Circle cx="50" cy="50" r="48" fill="#FF5A00" />
-        {/* Orange segments (simplified citrus cross-section) */}
-        <G opacity="0.3">
-          <Path d="M50 10 L50 50" stroke="#FFFFFF" strokeWidth="2" />
-          <Path d="M10 50 L50 50" stroke="#FFFFFF" strokeWidth="2" />
-          <Path d="M22 22 L50 50" stroke="#FFFFFF" strokeWidth="2" />
-          <Path d="M78 22 L50 50" stroke="#FFFFFF" strokeWidth="2" />
-          <Path d="M22 78 L50 50" stroke="#FFFFFF" strokeWidth="2" />
-          <Path d="M78 78 L50 50" stroke="#FFFFFF" strokeWidth="2" />
-          <Path d="M90 50 L50 50" stroke="#FFFFFF" strokeWidth="2" />
-          <Path d="M50 90 L50 50" stroke="#FFFFFF" strokeWidth="2" />
-        </G>
-        {/* Inner white circle */}
-        <Circle cx="50" cy="50" r="18" fill="none" stroke="#FFFFFF" strokeWidth="2" opacity="0.5" />
-        {/* Bite taken out - white ellipse top-right */}
-        <Circle cx="82" cy="18" r="18" fill="#FFFFFF" />
-        {/* White border ring */}
-        <Circle cx="50" cy="50" r="48" fill="none" stroke="#FFFFFF" strokeWidth="3" opacity="0.3" />
-      </Svg>
+    <View
+      style={{
+        width: size,
+        height: size,
+        borderRadius: size * 0.2237,
+        backgroundColor: "#FFFFFF",
+        borderWidth: Math.max(1, size * 0.012),
+        borderColor: "#E5E5E5",
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
+      {mark}
     </View>
   );
 }

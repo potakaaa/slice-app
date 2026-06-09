@@ -15,15 +15,18 @@ import { Card } from "@/components/Card";
 import { useColors } from "@/hooks/useColors";
 import { integrationMessage } from "@/lib/integrationErrors";
 import { useRevenueCat } from "@/lib/revenueCat";
-import type { PaidTier } from "@/lib/revenueCatUtils";
+import type { BillingPeriod, PaidTier } from "@/lib/revenueCatUtils";
 import { useProfile } from "@/lib/sliceData";
 import type { SubscriptionTier } from "@/types";
 
 interface PlanConfig {
   tier: SubscriptionTier;
   name: string;
-  price: string;
-  period: string;
+  monthlyPrice: string;
+  /** Per-month price when billed yearly (20% off). Omit for the free plan. */
+  yearlyPrice?: string;
+  /** Total charged once per year when billed yearly. */
+  yearlyTotal?: string;
   color: string;
   features: string[];
   highlight?: boolean;
@@ -33,64 +36,59 @@ const PLANS: PlanConfig[] = [
   {
     tier: "free",
     name: "Free",
-    price: "$0",
-    period: "forever",
+    monthlyPrice: "$0",
     color: "#6B7280",
     features: [
-      "Dashboard",
-      "Creditor list & management",
-      "Customized debt program",
-      "Settlement calculator",
-      "Snowball timeline",
-      "Monthly savings planner",
-      "Credit repair education",
+      "Personal debt dashboard",
+      "Creditor list & tracking",
       "Credit score tracker",
+      "Settlement calculator (30–70%)",
+      "Snowball timeline",
+      "Budget & savings tracker",
     ],
   },
   {
     tier: "silver",
     name: "Silver",
-    price: "$9.99",
-    period: "per month",
+    monthlyPrice: "$19",
+    yearlyPrice: "$15.20",
+    yearlyTotal: "$182.40",
     color: "#64748B",
-    highlight: true,
     features: [
       "Everything in Free",
+      "AI negotiation strategy",
+      "AI customized call scripts",
       "Zest AI Debt Coach",
-      "AI negotiation strategy (all creditors)",
-      "AI customized negotiation scripts",
-      "Tone selector for scripts",
-      "Mastermind preview access",
+      "Copy of our book Debt Settlements: Dirty Little Secrets",
     ],
   },
   {
     tier: "gold",
     name: "Gold",
-    price: "$24.99",
-    period: "per month",
+    monthlyPrice: "$49",
+    yearlyPrice: "$39.20",
+    yearlyTotal: "$470.40",
     color: "#B45309",
+    highlight: true,
     features: [
       "Everything in Silver",
-      "Mastermind replay library",
-      "Coaching session options",
+      "Live weekly Zoom coaching calls",
       "Tax advisory booking",
-      "1-on-1 with Marc Feinberg",
-      "Priority support",
+      "Founder coaching option",
     ],
   },
   {
     tier: "platinum",
     name: "Platinum",
-    price: "$49.99",
-    period: "per month",
+    monthlyPrice: "$99",
+    yearlyPrice: "$79.20",
+    yearlyTotal: "$950.40",
     color: "#7C3AED",
     features: [
       "Everything in Gold",
       "Live done-with-you creditor calls",
-      "Priority coaching scheduling",
-      "Direct access to Marc Feinberg",
-      "Advanced settlement guidance",
-      "White-glove support",
+      "Priority founder coaching",
+      "Priority support",
     ],
   },
 ];
@@ -99,6 +97,7 @@ export default function PricingScreen() {
   const colors = useColors();
   const { profile } = useProfile();
   const revenueCat = useRevenueCat();
+  const [billingPeriod, setBillingPeriod] = useState<BillingPeriod>("monthly");
   const [activeAction, setActiveAction] = useState<SubscriptionTier | "restore" | "manage" | null>(null);
   const [actionError, setActionError] = useState("");
 
@@ -114,7 +113,7 @@ export default function PricingScreen() {
         await revenueCat.manage();
         return;
       }
-      const result = await revenueCat.purchase(plan.tier as PaidTier);
+      const result = await revenueCat.purchase(plan.tier as PaidTier, billingPeriod);
       if (!result.cancelled) {
         Alert.alert("Subscription Updated", `${plan.name} access is now syncing to your SLICE account.`);
       }
@@ -161,6 +160,34 @@ export default function PricingScreen() {
           Upgrade or downgrade anytime.
         </Text>
 
+        <View style={[styles.billingToggle, { backgroundColor: colors.secondary, borderColor: colors.border }]}>
+          {(["monthly", "yearly"] as BillingPeriod[]).map((period) => {
+            const active = billingPeriod === period;
+            return (
+              <Pressable
+                key={period}
+                onPress={() => setBillingPeriod(period)}
+                style={[
+                  styles.billingOption,
+                  active && { backgroundColor: colors.primary },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.billingOptionText,
+                    { color: active ? "#FFFFFF" : colors.mutedForeground },
+                  ]}
+                >
+                  {period === "monthly" ? "Monthly" : "Yearly"}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+        <Text style={[styles.billingNote, { color: colors.primary }]}>
+          Pay yearly in full and save 20% — that's 2 months free.
+        </Text>
+
         <View style={[styles.currentBanner, { backgroundColor: colors.secondary, borderColor: colors.primary }]}>
           <Feather name="check-circle" size={16} color={colors.primary} />
           <Text style={[styles.currentText, { color: colors.foreground }]}>
@@ -195,8 +222,12 @@ export default function PricingScreen() {
 
         {PLANS.map((plan) => {
           const isCurrent = profile.tier === plan.tier;
-          const storePackage = plan.tier === "free" ? undefined : revenueCat.packages[plan.tier];
-          const displayPrice = storePackage?.product.priceString ?? plan.price;
+          const isYearly = billingPeriod === "yearly" && plan.tier !== "free";
+          const storePackage =
+            plan.tier === "free" ? undefined : revenueCat.packages[plan.tier]?.[billingPeriod];
+          const fallbackPrice = isYearly ? plan.yearlyPrice ?? plan.monthlyPrice : plan.monthlyPrice;
+          const displayPrice = storePackage?.product.priceString ?? fallbackPrice;
+          const period = plan.tier === "free" ? "forever" : "per month";
           const packageUnavailable = plan.tier !== "free" && revenueCat.configured && !storePackage;
           return (
             <View
@@ -229,9 +260,14 @@ export default function PricingScreen() {
                       {displayPrice}
                     </Text>
                     <Text style={[styles.planPeriod, { color: colors.mutedForeground }]}>
-                      /{plan.period}
+                      /{period}
                     </Text>
                   </View>
+                  {isYearly && plan.yearlyTotal && (
+                    <Text style={[styles.yearlyTotal, { color: colors.mutedForeground }]}>
+                      {plan.yearlyTotal} billed annually · save 20%
+                    </Text>
+                  )}
                 </View>
                 {isCurrent && (
                   <View style={[styles.currentDot, { backgroundColor: "#22C55E" }]} />
@@ -328,6 +364,27 @@ const styles = StyleSheet.create({
   safe: { flex: 1 },
   scroll: { padding: 16, gap: 16 },
   subtitle: { fontSize: 14, fontFamily: "Inter_400Regular", lineHeight: 20 },
+  billingToggle: {
+    flexDirection: "row",
+    borderRadius: 10,
+    borderWidth: 1,
+    padding: 4,
+    gap: 4,
+  },
+  billingOption: {
+    flex: 1,
+    paddingVertical: 8,
+    borderRadius: 7,
+    alignItems: "center",
+  },
+  billingOptionText: { fontSize: 13, fontFamily: "Inter_600SemiBold" },
+  billingNote: {
+    fontSize: 12,
+    fontFamily: "Inter_500Medium",
+    textAlign: "center",
+    marginTop: -8,
+  },
+  yearlyTotal: { fontSize: 11, fontFamily: "Inter_400Regular", marginTop: 2 },
   currentBanner: {
     flexDirection: "row",
     alignItems: "center",

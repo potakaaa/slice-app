@@ -34,6 +34,9 @@ export default function OnboardingStep1() {
   const [monthlySavings, setMonthlySavings] = useState(
     formatMoneyInput(profile.defaultMonthlySavings)
   );
+  const [savedSoFar, setSavedSoFar] = useState(
+    formatMoneyInput(profile.currentSavedCash)
+  );
   const [settlementPct, setSettlementPct] = useState(
     profile.defaultSettlementPercentage
   );
@@ -47,6 +50,7 @@ export default function OnboardingStep1() {
       name: name.trim(),
       email: email.trim(),
       defaultMonthlySavings: parseMoneyInput(monthlySavings),
+      currentSavedCash: parseMoneyInput(savedSoFar),
       defaultSettlementPercentage: settlementPct,
     });
     router.push("/onboarding/step2");
@@ -142,6 +146,26 @@ export default function OnboardingStep1() {
                   style={[styles.dollarTextInput, { color: colors.foreground }]}
                 />
                 <Text style={[styles.perMonth, { color: colors.mutedForeground }]}>/mo</Text>
+              </View>
+            </View>
+
+            <View style={styles.field}>
+              <Text style={[styles.label, { color: colors.foreground }]}>
+                How much have you saved so far?
+              </Text>
+              <Text style={[styles.hint, { color: colors.mutedForeground }]}>
+                This is your starting settlement fund. $0 is fine — you can add to it anytime.
+              </Text>
+              <View style={[styles.dollarInput, { borderColor: colors.border, backgroundColor: colors.card }]}>
+                <Text style={[styles.dollar, { color: colors.mutedForeground }]}>$</Text>
+                <TextInput
+                  value={savedSoFar}
+                  onChangeText={(value) => setSavedSoFar(formatMoneyInput(value))}
+                  keyboardType="numeric"
+                  placeholder="0"
+                  placeholderTextColor={colors.mutedForeground}
+                  style={[styles.dollarTextInput, { color: colors.foreground }]}
+                />
               </View>
             </View>
 

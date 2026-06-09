@@ -17,19 +17,22 @@ import {
 import { createSliceApiClient } from "@/lib/sliceApi";
 import {
   REVENUECAT_PACKAGE_IDS,
-  tierForPackageIdentifier,
+  packageRefForIdentifier,
+  type BillingPeriod,
   type PaidTier,
 } from "@/lib/revenueCatUtils";
 
 type PurchaseResult = { cancelled: boolean };
 
+type TierPackages = Partial<Record<BillingPeriod, PurchasesPackage>>;
+
 type RevenueCatContextValue = {
   available: boolean;
   configured: boolean;
   loading: boolean;
-  packages: Partial<Record<PaidTier, PurchasesPackage>>;
+  packages: Partial<Record<PaidTier, TierPackages>>;
   error: IntegrationError | null;
-  purchase: (tier: PaidTier) => Promise<PurchaseResult>;
+  purchase: (tier: PaidTier, period: BillingPeriod) => Promise<PurchaseResult>;
   restore: () => Promise<void>;
   manage: () => Promise<void>;
   refresh: () => Promise<void>;
@@ -56,10 +59,14 @@ function isPreviewEnvironment() {
 }
 
 function packageMap(availablePackages: PurchasesPackage[]) {
-  return availablePackages.reduce<Partial<Record<PaidTier, PurchasesPackage>>>(
+  return availablePackages.reduce<Partial<Record<PaidTier, TierPackages>>>(
     (result, item) => {
-      const tier = tierForPackageIdentifier(item.identifier);
-      if (tier) result[tier] = item;
+      const ref = packageRefForIdentifier(item.identifier);
+      if (ref) {
+        const tierPackages = result[ref.tier] ?? {};
+        tierPackages[ref.period] = item;
+        result[ref.tier] = tierPackages;
+      }
       return result;
     },
     {},
@@ -69,7 +76,7 @@ function packageMap(availablePackages: PurchasesPackage[]) {
 export function RevenueCatProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const [packages, setPackages] = useState<Partial<Record<PaidTier, PurchasesPackage>>>({});
+  const [packages, setPackages] = useState<Partial<Record<PaidTier, TierPackages>>>({});
   const [loading, setLoading] = useState(false);
   const [configured, setConfigured] = useState(false);
   const [error, setError] = useState<IntegrationError | null>(null);
@@ -146,13 +153,16 @@ export function RevenueCatProvider({ children }: { children: React.ReactNode }) 
     void refresh();
   }, [user?.id]);
 
-  const purchase = async (tier: PaidTier): Promise<PurchaseResult> => {
+  const purchase = async (tier: PaidTier, period: BillingPeriod): Promise<PurchaseResult> => {
     if (!available) {
       throw new IntegrationError("revenuecat_preview", "Real purchases require a development build.");
     }
-    const selectedPackage = packages[tier];
-    if (!selectedPackage || selectedPackage.identifier !== REVENUECAT_PACKAGE_IDS[tier]) {
-      throw new IntegrationError("package_unavailable", `${tier} is not available in the current offering.`);
+    const selectedPackage = packages[tier]?.[period];
+    if (!selectedPackage || selectedPackage.identifier !== REVENUECAT_PACKAGE_IDS[tier][period]) {
+      throw new IntegrationError(
+        "package_unavailable",
+        `${tier} (${period}) is not available in the current offering.`,
+      );
     }
 
     try {

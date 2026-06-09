@@ -11,6 +11,7 @@ import {
 } from "@workspace/api-zod";
 import type { ZodType } from "zod";
 
+import { describeBackendFailure } from "./backendErrors";
 import { IntegrationError } from "./integrationErrors";
 import { getCurrentAccessToken, getSupabasePublicConfig, type AccessTokenProvider } from "./supabase";
 import type { DebtProgram, SavingsTrackerMonth } from "@/types";
@@ -39,23 +40,37 @@ export class SliceApiClient {
       url.searchParams.set(key, value);
     }
 
-    const response = await fetch(url.toString(), {
-      method: options.method ?? "POST",
-      headers: {
-        authorization: `Bearer ${token}`,
-        "content-type": "application/json",
-        apikey: config.anonKey,
-      },
-      body: options.body === undefined ? undefined : JSON.stringify(options.body),
-    });
+    let response: Response;
+    try {
+      response = await fetch(url.toString(), {
+        method: options.method ?? "POST",
+        headers: {
+          authorization: `Bearer ${token}`,
+          "content-type": "application/json",
+          apikey: config.anonKey,
+        },
+        body: options.body === undefined ? undefined : JSON.stringify(options.body),
+      });
+    } catch {
+      // Network-level failure (no connectivity, DNS, TLS). Never reached the backend.
+      throw new IntegrationError(
+        "network_error",
+        `Could not reach the SLICE backend (${functionName}). Check your connection and try again.`,
+      );
+    }
+
+    // Read the body once as text so we can still surface diagnostics when the
+    // gateway returns a non-JSON error page (e.g. a 404 for an undeployed
+    // function, or a 401 from JWT verification before the function runs).
+    const rawBody = await response.text();
 
     let payload: unknown;
     try {
-      payload = await response.json();
+      payload = rawBody.length > 0 ? JSON.parse(rawBody) : undefined;
     } catch {
       throw new IntegrationError(
         "invalid_backend_response",
-        "The SLICE backend returned an invalid response.",
+        describeBackendFailure(functionName, response.status, rawBody),
         response.status,
       );
     }
@@ -68,7 +83,7 @@ export class SliceApiClient {
     ) {
       throw new IntegrationError(
         "invalid_backend_response",
-        "The SLICE backend returned an invalid response.",
+        describeBackendFailure(functionName, response.status, rawBody),
         response.status,
       );
     }

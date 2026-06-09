@@ -30,6 +30,12 @@ const TOOLS: ToolItem[] = [
     route: "/calculator",
   },
   {
+    icon: "sliders",
+    title: "What-If Simulator",
+    description: "See how changing your monthly savings moves your settlement date",
+    route: "/what-if",
+  },
+  {
     icon: "trending-up",
     title: "Savings Planner",
     description: "Find the monthly savings amount to hit your timeline",

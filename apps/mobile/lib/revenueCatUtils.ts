@@ -1,9 +1,11 @@
 import type { SubscriptionTier } from "@/types";
 
+export type BillingPeriod = "monthly" | "yearly";
+
 export const REVENUECAT_PACKAGE_IDS = {
-  silver: "silver_monthly",
-  gold: "gold_monthly",
-  platinum: "platinum_monthly",
+  silver: { monthly: "silver_monthly", yearly: "silver_yearly" },
+  gold: { monthly: "gold_monthly", yearly: "gold_yearly" },
+  platinum: { monthly: "platinum_monthly", yearly: "platinum_yearly" },
 } as const;
 
 export type PaidTier = Exclude<SubscriptionTier, "free">;
@@ -15,9 +17,21 @@ const tierRank: Record<SubscriptionTier, number> = {
   platinum: 3,
 };
 
+export function packageRefForIdentifier(
+  identifier: string,
+): { tier: PaidTier; period: BillingPeriod } | null {
+  for (const [tier, periods] of Object.entries(REVENUECAT_PACKAGE_IDS)) {
+    for (const [period, value] of Object.entries(periods)) {
+      if (value === identifier) {
+        return { tier: tier as PaidTier, period: period as BillingPeriod };
+      }
+    }
+  }
+  return null;
+}
+
 export function tierForPackageIdentifier(identifier: string): PaidTier | null {
-  const entry = Object.entries(REVENUECAT_PACKAGE_IDS).find(([, value]) => value === identifier);
-  return (entry?.[0] as PaidTier | undefined) ?? null;
+  return packageRefForIdentifier(identifier)?.tier ?? null;
 }
 
 export function highestEntitlementTier(identifiers: string[]): SubscriptionTier {

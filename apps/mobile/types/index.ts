@@ -10,6 +10,8 @@ export interface UserProfile {
   primaryGoal: PrimaryGoal;
   defaultSettlementPercentage: number;
   defaultMonthlySavings: number;
+  /** Cash already saved toward the first settlement offer (the settlement fund). */
+  currentSavedCash: number;
   tier: SubscriptionTier;
   onboardingComplete: boolean;
 }
@@ -61,4 +63,32 @@ export interface SavingsTrackerMonth {
   monthlyAmount: number;
   status: "pending" | "saved";
   savedAt: string | null;
+}
+
+export type ContactOutcome =
+  | "left_message"
+  | "callback_requested"
+  | "counter_offered"
+  | "offer_accepted"
+  | "offer_rejected"
+  | "no_answer"
+  | "other";
+
+export interface ContactLog {
+  id: string;
+  creditorId: string;
+  contactDate: string;
+  outcome: ContactOutcome;
+  amountOffered: number | null;
+  followUpDate: string | null;
+  notes: string;
+}
+
+export interface NegotiationScript {
+  id: string;
+  creditorId: string;
+  tone: ScriptTone;
+  sections: Record<string, string>;
+  reminders: string[];
+  createdAt: string;
 }

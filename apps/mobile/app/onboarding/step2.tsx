@@ -74,6 +74,14 @@ export default function OnboardingStep2() {
   );
   const canContinue = validCreditors.length > 0;
 
+  // Pillar 1 (Instant Value Delivery): surface the "you could save $X" win the
+  // moment a debt is entered — before any sign-up gate.
+  const previewDebt = validCreditors.reduce(
+    (sum, c) => sum + parseMoneyInput(c.balance),
+    0
+  );
+  const previewSavings = previewDebt * (1 - profile.defaultSettlementPercentage);
+
   const handleNext = () => {
     setDraftCreditors(
       validCreditors.map((creditor, index) => ({
@@ -196,6 +204,21 @@ export default function OnboardingStep2() {
         </ScrollView>
 
         <View style={[styles.footer, { borderTopColor: colors.border, paddingBottom: Platform.OS === "web" ? 34 : 16 }]}>
+          {previewSavings > 0 && (
+            <View style={[styles.savingsBanner, { backgroundColor: colors.secondary }]}>
+              <View style={styles.savingsIcon}>
+                <Feather name="trending-down" size={18} color={colors.primary} />
+              </View>
+              <View style={styles.savingsText}>
+                <Text style={[styles.savingsLabel, { color: colors.mutedForeground }]}>
+                  You could save an estimated
+                </Text>
+                <Text style={[styles.savingsValue, { color: colors.primary }]}>
+                  {formatCurrency(previewSavings)}
+                </Text>
+              </View>
+            </View>
+          )}
           <Button
             label={`Continue with ${validCreditors.length} creditor${validCreditors.length !== 1 ? "s" : ""}`}
             onPress={handleNext}
@@ -269,5 +292,23 @@ const styles = StyleSheet.create({
   },
   addText: { fontSize: 14, fontFamily: "Inter_600SemiBold" },
   tip: { fontSize: 12, fontFamily: "Inter_400Regular", textAlign: "center", marginTop: 12 },
-  footer: { padding: 20, paddingTop: 12, borderTopWidth: 1 },
+  footer: { padding: 20, paddingTop: 12, borderTopWidth: 1, gap: 12 },
+  savingsBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    borderRadius: 12,
+    padding: 12,
+  },
+  savingsIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#FFFFFF",
+  },
+  savingsText: { flex: 1 },
+  savingsLabel: { fontSize: 12, fontFamily: "Inter_600SemiBold" },
+  savingsValue: { fontSize: 22, fontFamily: "Inter_700Bold", marginTop: 1 },
 });

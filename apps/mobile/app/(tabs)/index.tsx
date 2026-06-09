@@ -16,11 +16,13 @@ import { SliceLogo } from "@/components/SliceLogo";
 import { SummaryCard } from "@/components/SummaryCard";
 import { CreditorCard } from "@/components/CreditorCard";
 import { EmptyState } from "@/components/EmptyState";
+import { SettlementReadinessCard } from "@/components/SettlementReadinessCard";
 import { TierBadge } from "@/components/TierBadge";
 import { useColors } from "@/hooks/useColors";
 import { useAggregateProgram, useCreditors, useProfile } from "@/lib/sliceData";
 import {
   buildSimpleDebtProgram,
+  calcSettlementReadiness,
   formatCurrency,
   getMaxProgramLength,
   getSortedBySnowball,
@@ -50,6 +52,11 @@ export default function DashboardScreen() {
   const savingsRatio = totalDebt > 0 ? Math.round((savings / totalDebt) * 100) : 0;
   const sorted = getSortedBySnowball(creditors);
   const nextCreditor = sorted.find((c) => c.status === "active");
+  const readiness = calcSettlementReadiness(
+    creditors,
+    profile.currentSavedCash,
+    profile.defaultMonthlySavings
+  );
   const programName = getPersonalProgramName(profile.name);
   const shouldPromptProgram = creditors.length > 0 && !debtProgram?.disclosureAccepted;
   const aggregateProgram = debtProgram ?? buildSimpleDebtProgram(totalDebt, profile.defaultMonthlySavings);
@@ -68,7 +75,7 @@ export default function DashboardScreen() {
               {profile.name ? `Hi, ${profile.name.split(" ")[0]}` : "Welcome back"}
             </Text>
             <Text style={[styles.headerTitle, { color: colors.foreground }]}>
-              Your Program
+              Your Plan
             </Text>
           </View>
         </View>
@@ -88,9 +95,9 @@ export default function DashboardScreen() {
           <View style={styles.emptyWrapper}>
             <EmptyState
               icon="target"
-              title={`Start ${programName}`}
-              description="Add your first creditor and SLICE will turn it into a simple savings plan with a monthly tracker."
-              actionLabel="Start Setup"
+              title="See your first settlement plan"
+              description="Add one creditor and SLICE will show when you're settlement-ready, how much to save, and your next best move."
+              actionLabel="Add a creditor"
               onAction={() => router.push("/creditor/add")}
             />
           </View>
@@ -126,29 +133,24 @@ export default function DashboardScreen() {
               </Pressable>
             )}
 
-            {/* Hero */}
-            <View style={[styles.hero, { backgroundColor: colors.primary }]}>
-              <Text style={styles.heroLabel}>Total Debt</Text>
-              <Text style={styles.heroAmount}>{formatCurrency(totalDebt)}</Text>
-              <View style={styles.heroSeparator} />
-              <View style={styles.heroStats}>
-                <View style={styles.heroStat}>
-                  <Text style={styles.heroStatLabel}>Settlement Target</Text>
-                  <Text style={styles.heroStatValue}>{formatCurrency(totalTarget)}</Text>
-                </View>
-                <View style={styles.heroStatDivider} />
-                <View style={styles.heroStat}>
-                  <Text style={styles.heroStatLabel}>Estimated Savings</Text>
-                  <Text style={[styles.heroStatValue, styles.savingsColor]}>
-                    {formatCurrency(savings)}
-                  </Text>
-                </View>
-                <View style={styles.heroStatDivider} />
-                <View style={styles.heroStat}>
-                  <Text style={styles.heroStatLabel}>Savings Rate</Text>
-                  <Text style={[styles.heroStatValue, styles.savingsColor]}>{savingsRatio}%</Text>
-                </View>
-              </View>
+            {/* Outcome-first hero: settlement readiness */}
+            <SettlementReadinessCard readiness={readiness} />
+
+            {/* Demoted program numbers */}
+            <View style={styles.summaryRow}>
+              <SummaryCard
+                label="Total Debt"
+                value={formatCurrency(totalDebt)}
+                icon="credit-card"
+                style={{ flex: 1 }}
+              />
+              <SummaryCard
+                label="Settlement Target"
+                value={formatCurrency(totalTarget)}
+                icon="percent"
+                subtitle={`Save ${formatCurrency(savings)} (${savingsRatio}%)`}
+                style={{ flex: 1 }}
+              />
             </View>
 
             {/* Summary row */}
@@ -401,46 +403,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: "Inter_600SemiBold",
     lineHeight: 17,
-  },
-  hero: {
-    borderRadius: 16,
-    padding: 20,
-    gap: 14,
-  },
-  heroLabel: {
-    color: "#FFFFFF",
-    fontSize: 12,
-    fontFamily: "Inter_700Bold",
-    letterSpacing: 0.5,
-  },
-  heroAmount: {
-    color: "#FFFFFF",
-    fontSize: 38,
-    fontFamily: "Inter_700Bold",
-    letterSpacing: -1,
-  },
-  heroSeparator: {
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: "rgba(255,255,255,0.25)",
-  },
-  heroStats: { flexDirection: "row", alignItems: "center" },
-  heroStat: { flex: 1, gap: 3 },
-  heroStatLabel: {
-    color: "#FFFFFF",
-    fontSize: 10,
-    fontFamily: "Inter_700Bold",
-  },
-  heroStatValue: {
-    color: "#FFFFFF",
-    fontSize: 15,
-    fontFamily: "Inter_600SemiBold",
-  },
-  savingsColor: { color: "#FFFFFF" },
-  heroStatDivider: {
-    width: StyleSheet.hairlineWidth,
-    height: 32,
-    backgroundColor: "rgba(255,255,255,0.25)",
-    marginHorizontal: 12,
   },
   summaryRow: { flexDirection: "row", gap: 12 },
   section: { gap: 10 },
