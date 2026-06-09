@@ -116,6 +116,7 @@ export const AiScriptResponse = z.object({
   script: AiScriptContent,
   saved_script_id: z.string().uuid(),
   model: z.string().min(1),
+  used_fallback: z.boolean().optional(),
 });
 export type AiScriptResponse = z.infer<typeof AiScriptResponse>;
 

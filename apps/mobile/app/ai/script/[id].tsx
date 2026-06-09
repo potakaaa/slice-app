@@ -85,6 +85,8 @@ export default function AIScriptScreen() {
   const aiOffer = getAISuggestedOffer(creditor.balance);
   const aiOfferAmt = creditor.balance * aiOffer;
   const generatedScript = generateScript.data?.script;
+  const usedFallback = generateScript.data?.used_fallback === true;
+  const isAiGenerated = !!generatedScript && !usedFallback;
   const scripts = generatedScript?.sections ?? buildScript(creditor.name, creditor.balance, aiOffer, aiOfferAmt, tone);
   const scriptKeys = Object.keys(scripts);
   const bottomPad = Platform.OS === "web" ? 34 : 20;
@@ -188,9 +190,17 @@ export default function AIScriptScreen() {
             {/* Script content */}
             <Card style={styles.scriptCard}>
               <Text style={[styles.scriptTitle, { color: colors.primary }]}>
-                {generatedScript ? "Generated Script" : "Script Preview"} ·{" "}
+                {isAiGenerated ? "Generated Script" : usedFallback ? "Template · AI unavailable" : "Script Preview"} ·{" "}
                 {scriptKeys[activeTab]?.replaceAll("_", " ")}
               </Text>
+              {usedFallback && (
+                <View style={[styles.fallbackBanner, { backgroundColor: colors.muted, borderColor: colors.destructive }]}>
+                  <Feather name="alert-triangle" size={14} color={colors.destructive} />
+                  <Text style={[styles.fallbackText, { color: colors.foreground }]}>
+                    Couldn&apos;t reach the AI, so this is a generic template — not tailored to your tone or creditor. Tap Regenerate to try again.
+                  </Text>
+                </View>
+              )}
               <Text style={[styles.scriptText, { color: colors.foreground }]}>
                 {scripts[scriptKeys[activeTab]]}
               </Text>
@@ -283,6 +293,15 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_400Regular",
     lineHeight: 22,
   },
+  fallbackBanner: {
+    flexDirection: "row",
+    gap: 8,
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    alignItems: "flex-start",
+  },
+  fallbackText: { fontSize: 12, fontFamily: "Inter_500Medium", flex: 1, lineHeight: 18 },
   phoneHint: {
     flexDirection: "row",
     gap: 8,

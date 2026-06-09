@@ -35,7 +35,7 @@ Deno.serve((req) => withCors(req, async () => {
       disclaimer: "Educational information only; results are not guaranteed.",
     };
     const prompt = `Create a debt negotiation strategy as JSON with keys suggested_first_offer_percentage, reasoning, strategy_steps, risks, and disclaimer for this creditor context:\n${safePromptJson({ creditor })}`;
-    const ai = await generateGeminiJson(prompt, fallback, aiStrategyContentSchema);
+    const ai = await generateGeminiJson(prompt, fallback, aiStrategyContentSchema, "ai_strategy");
 
     await ctx.adminClient.from("ai_chat_messages").insert({
       user_id: ctx.user.id,

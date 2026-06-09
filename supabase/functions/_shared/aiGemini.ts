@@ -14,11 +14,20 @@ const SYSTEM_INSTRUCTION = [
   LEGAL_DISCLAIMER,
 ].join("\n");
 
+export type GeminiResult<T> = {
+  data: T;
+  model: string;
+  raw: string;
+  usedFallback: boolean;
+  fallbackReason?: "empty_response" | "json_parse_error" | "schema_validation";
+};
+
 export async function generateGeminiJson<T>(
   prompt: string,
   fallback: T,
   schema?: z.ZodType<T>,
-): Promise<{ data: T; model: string; raw: string }> {
+  label = "gemini",
+): Promise<GeminiResult<T>> {
   const model = env("GEMINI_MODEL", "gemini-1.5-pro");
   const key = env("GEMINI_API_KEY");
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`;
@@ -38,20 +47,36 @@ export async function generateGeminiJson<T>(
 
   if (!res.ok) {
     const body = await res.text();
-    console.error("gemini_error", res.status, body.slice(0, 500));
+    console.error(`${label}_error`, res.status, body.slice(0, 500));
     throw new HttpError(502, "ai_provider_error", "AI provider request failed");
   }
 
   const json = await res.json();
+  const finishReason = json?.candidates?.[0]?.finishReason;
   const raw = json?.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
-  if (!raw) return { data: fallback, model, raw: "" };
-
-  try {
-    const parsed = JSON.parse(raw) as unknown;
-    if (!schema) return { data: parsed as T, model, raw };
-    const validated = schema.safeParse(parsed);
-    return { data: validated.success ? validated.data : fallback, model, raw };
-  } catch {
-    return { data: fallback, model, raw };
+  if (!raw) {
+    console.warn(`${label}_fallback`, "empty_response", JSON.stringify({ model, finishReason }));
+    return { data: fallback, model, raw: "", usedFallback: true, fallbackReason: "empty_response" };
   }
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch (cause) {
+    console.error(`${label}_fallback`, "json_parse_error", String(cause), raw.slice(0, 800));
+    return { data: fallback, model, raw, usedFallback: true, fallbackReason: "json_parse_error" };
+  }
+
+  if (!schema) return { data: parsed as T, model, raw, usedFallback: false };
+
+  const validated = schema.safeParse(parsed);
+  if (validated.success) return { data: validated.data, model, raw, usedFallback: false };
+
+  console.error(
+    `${label}_fallback`,
+    "schema_validation",
+    JSON.stringify(validated.error.issues),
+    raw.slice(0, 800),
+  );
+  return { data: fallback, model, raw, usedFallback: true, fallbackReason: "schema_validation" };
 }

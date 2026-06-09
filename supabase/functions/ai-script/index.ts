@@ -34,21 +34,33 @@ Deno.serve((req) => withCors(req, async () => {
       reminders: ["Do not share full bank/card numbers.", "Get the agreement in writing before paying."],
       disclaimer: "Template for educational use only; results are not guaranteed.",
     };
-    const prompt = `Generate a JSON negotiation call script with keys tone, sections, reminders, and disclaimer using tone "${body.tone}" for:\n${safePromptJson({ creditor })}`;
-    const ai = await generateGeminiJson(prompt, fallback, aiScriptContentSchema);
+    const prompt = [
+      `Generate a debt-negotiation call script as a single JSON object using tone "${body.tone}".`,
+      `Reflect the "${body.tone}" tone throughout the wording (e.g. "hardship" must emphasize genuine financial difficulty).`,
+      `Return EXACTLY this shape with no extra keys and no nesting:`,
+      `{"tone":"${body.tone}","sections":{"first_call":"<text>","settlement_offer":"<text>","follow_up":"<text>","confirmation":"<text>"},"reminders":["<text>"],"disclaimer":"<text>"}`,
+      `Every section value MUST be a non-empty plain string (not an object or array). Use [brackets] for details the caller must fill in.`,
+      `Creditor context:\n${safePromptJson({ creditor })}`,
+    ].join("\n");
+    const ai = await generateGeminiJson(prompt, fallback, aiScriptContentSchema, "ai_script");
 
     const { data: saved, error: saveError } = await ctx.adminClient.from("negotiation_scripts").insert({
       user_id: ctx.user.id,
       creditor_id: creditor.id,
       tone: body.tone,
       script: ai.data,
-      provider: "gemini",
+      provider: ai.usedFallback ? "fallback" : "gemini",
       model: ai.model,
     }).select().single();
     if (saveError) throw saveError;
     const clientInfo = getClientInfo(req);
-    await auditLog(ctx.adminClient, { userId: ctx.user.id, action: "ai_script_generated", ip: clientInfo.ip, userAgent: clientInfo.userAgent });
-    return ok({ script: ai.data, saved_script_id: saved.id, model: ai.model });
+    await auditLog(ctx.adminClient, {
+      userId: ctx.user.id,
+      action: ai.usedFallback ? "ai_script_fallback" : "ai_script_generated",
+      ip: clientInfo.ip,
+      userAgent: clientInfo.userAgent,
+    });
+    return ok({ script: ai.data, saved_script_id: saved.id, model: ai.model, used_fallback: ai.usedFallback });
   } catch (error) {
     return fail(error);
   }
