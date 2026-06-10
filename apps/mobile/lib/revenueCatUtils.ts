@@ -8,6 +8,17 @@ export const REVENUECAT_PACKAGE_IDS = {
   platinum: { monthly: "platinum_monthly", yearly: "platinum_yearly" },
 } as const;
 
+export function isRevenueCatPublicSdkKey(
+  platform: "ios" | "android",
+  apiKey: string,
+) {
+  const prefix = platform === "ios" ? "appl_" : "goog_";
+  return (
+    (apiKey.startsWith(prefix) && apiKey.length > prefix.length) ||
+    (apiKey.startsWith("test_") && apiKey.length > "test_".length)
+  );
+}
+
 export type PaidTier = Exclude<SubscriptionTier, "free">;
 
 const tierRank: Record<SubscriptionTier, number> = {

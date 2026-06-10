@@ -1,5 +1,5 @@
 import { Feather } from "@expo/vector-icons";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Platform,
   Pressable,
@@ -98,6 +98,10 @@ export default function PricingScreen() {
 
   const topPad = Platform.OS === "web" ? 67 : 0;
   const bottomPad = Platform.OS === "web" ? 34 : 20;
+
+  useEffect(() => {
+    void revenueCat.refresh();
+  }, []);
 
   const handleUpgrade = async (plan: PlanConfig) => {
     if (plan.tier === profile.tier) return;

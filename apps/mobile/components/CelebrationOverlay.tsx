@@ -1,16 +1,14 @@
 import { Feather } from "@expo/vector-icons";
-import React, { useEffect, useMemo } from "react";
-import { Dimensions, Pressable, StyleSheet, Text, View } from "react-native";
-import Animated, {
+import React, { useEffect, useMemo, useRef } from "react";
+import {
+  Animated,
+  Dimensions,
   Easing,
-  runOnJS,
-  useAnimatedStyle,
-  useSharedValue,
-  withDelay,
-  withSequence,
-  withSpring,
-  withTiming,
-} from "react-native-reanimated";
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 
 import { hapticSuccess } from "@/lib/haptics";
 
@@ -80,34 +78,56 @@ function CelebrationBadge({
   message?: string;
   onDone: () => void;
 }) {
-  const scale = useSharedValue(0.6);
-  const opacity = useSharedValue(0);
+  const scale = useRef(new Animated.Value(0.6)).current;
+  const opacity = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     hapticSuccess();
-    scale.value = withSequence(
-      withSpring(1.06, { damping: 9, stiffness: 140 }),
-      withSpring(1, { damping: 12, stiffness: 140 }),
-    );
-    // Fade in, hold while the moment lands, then fade out and dismiss.
-    opacity.value = withSequence(
-      withTiming(1, { duration: 220 }),
-      withDelay(
-        VISIBLE_MS,
-        withTiming(0, { duration: 260, easing: Easing.in(Easing.ease) }, (finished) => {
-          if (finished) runOnJS(onDone)();
+    const animation = Animated.parallel([
+      Animated.sequence([
+        Animated.spring(scale, {
+          toValue: 1.06,
+          damping: 9,
+          stiffness: 140,
+          useNativeDriver: true,
         }),
-      ),
-    );
+        Animated.spring(scale, {
+          toValue: 1,
+          damping: 12,
+          stiffness: 140,
+          useNativeDriver: true,
+        }),
+      ]),
+      Animated.sequence([
+        Animated.timing(opacity, {
+          toValue: 1,
+          duration: 220,
+          useNativeDriver: true,
+        }),
+        Animated.delay(VISIBLE_MS),
+        Animated.timing(opacity, {
+          toValue: 0,
+          duration: 260,
+          easing: Easing.in(Easing.ease),
+          useNativeDriver: true,
+        }),
+      ]),
+    ]);
+
+    animation.start(({ finished }) => {
+      if (finished) onDone();
+    });
+
+    return () => {
+      animation.stop();
+    };
   }, [onDone, opacity, scale]);
 
-  const style = useAnimatedStyle(() => ({
-    opacity: opacity.value,
-    transform: [{ scale: scale.value }],
-  }));
-
   return (
-    <Animated.View style={[styles.badgeWrap, style]} pointerEvents="none">
+    <Animated.View
+      style={[styles.badgeWrap, { opacity, transform: [{ scale }] }]}
+      pointerEvents="none"
+    >
       <View style={styles.badgeIcon}>
         <Feather name="check" size={34} color="#FFFFFF" />
       </View>
@@ -118,38 +138,58 @@ function CelebrationBadge({
 }
 
 function ConfettiPiece({ spec }: { spec: PieceSpec }) {
-  const translateY = useSharedValue(-40);
-  const translateX = useSharedValue(spec.startX);
-  const rotate = useSharedValue(0);
-  const opacity = useSharedValue(1);
+  const translateY = useRef(new Animated.Value(-40)).current;
+  const translateX = useRef(new Animated.Value(spec.startX)).current;
+  const rotate = useRef(new Animated.Value(0)).current;
+  const opacity = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
-    translateY.value = withDelay(
-      spec.delay,
-      withTiming(SCREEN_H + 60, { duration: spec.duration, easing: Easing.in(Easing.quad) }),
-    );
-    translateX.value = withDelay(
-      spec.delay,
-      withTiming(spec.startX + spec.drift, { duration: spec.duration, easing: Easing.inOut(Easing.ease) }),
-    );
-    rotate.value = withDelay(
-      spec.delay,
-      withTiming(360 * (spec.drift > 0 ? 2 : -2), { duration: spec.duration }),
-    );
-    opacity.value = withDelay(
-      spec.delay + spec.duration - 400,
-      withTiming(0, { duration: 400 }),
-    );
+    const delay = Animated.delay(spec.delay);
+    const animation = Animated.parallel([
+      Animated.sequence([
+        delay,
+        Animated.timing(translateY, {
+          toValue: SCREEN_H + 60,
+          duration: spec.duration,
+          easing: Easing.in(Easing.quad),
+          useNativeDriver: true,
+        }),
+      ]),
+      Animated.sequence([
+        Animated.delay(spec.delay),
+        Animated.timing(translateX, {
+          toValue: spec.startX + spec.drift,
+          duration: spec.duration,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+      ]),
+      Animated.sequence([
+        Animated.delay(spec.delay),
+        Animated.timing(rotate, {
+          toValue: spec.drift > 0 ? 2 : -2,
+          duration: spec.duration,
+          useNativeDriver: true,
+        }),
+      ]),
+      Animated.sequence([
+        Animated.delay(spec.delay + spec.duration - 400),
+        Animated.timing(opacity, {
+          toValue: 0,
+          duration: 400,
+          useNativeDriver: true,
+        }),
+      ]),
+    ]);
+
+    animation.start();
+    return () => animation.stop();
   }, [opacity, rotate, spec, translateX, translateY]);
 
-  const style = useAnimatedStyle(() => ({
-    opacity: opacity.value,
-    transform: [
-      { translateX: translateX.value },
-      { translateY: translateY.value },
-      { rotate: `${rotate.value}deg` },
-    ],
-  }));
+  const rotation = rotate.interpolate({
+    inputRange: [-2, 2],
+    outputRange: ["-720deg", "720deg"],
+  });
 
   return (
     <Animated.View
@@ -157,7 +197,10 @@ function ConfettiPiece({ spec }: { spec: PieceSpec }) {
       style={[
         styles.piece,
         { width: spec.size, height: spec.size * 0.6, backgroundColor: spec.color },
-        style,
+        {
+          opacity,
+          transform: [{ translateX }, { translateY }, { rotate: rotation }],
+        },
       ]}
     />
   );

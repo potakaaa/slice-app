@@ -4,11 +4,11 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { createClient, processLock } from "@supabase/supabase-js";
 import { AppState, Platform } from "react-native";
 
-const publicEnv = process["env"];
-const supabaseUrl = publicEnv["EXPO_PUBLIC_SUPABASE_URL"];
+// Expo only inlines public variables when they use direct member access.
+const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
 const supabasePublicKey =
-  publicEnv["EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY"] ??
-  publicEnv["EXPO_PUBLIC_SUPABASE_ANON_KEY"];
+  process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY ??
+  process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
 
 export function getSupabasePublicConfig() {
   if (!supabaseUrl || !supabasePublicKey) {

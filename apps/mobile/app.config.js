@@ -1,4 +1,4 @@
-const APP_NAME = "SLICE - Debt Resolution App";
+const APP_NAME = "Slice";
 const DEFAULT_PRODUCTION_ORIGIN = "https://slice.marcfeinberg.com";
 const env = process["env"];
 
@@ -30,12 +30,14 @@ module.exports = {
   expo: {
     name: APP_NAME,
     slug: "slice",
+    owner: "marcfeinberg1964",
     version: "1.0.0",
     orientation: "portrait",
     icon: "./assets/images/icon.png",
     scheme: "slice",
     userInterfaceStyle: "light",
     newArchEnabled: true,
+    policy: "nativeVersion",
     splash: {
       image: "./assets/images/splash-icon.png",
       resizeMode: "contain",
@@ -116,12 +118,12 @@ module.exports = {
     plugins,
     experiments: {
       typedRoutes: true,
-      reactCompiler: true,
+      reactCompiler: false,
     },
     extra: {
       appVariant: appVariant || buildProfile || "local",
       eas: {
-        projectId: env["EAS_PROJECT_ID"] || "6c33f5c1-c918-4138-86f9-d9fe48a47c45",
+        projectId: env["EAS_PROJECT_ID"] || "a3125c30-70d6-419a-b2cc-e90dcecdaf0a",
       },
     },
   },

@@ -10,6 +10,7 @@ import {
 import { IntegrationError, toIntegrationError } from "./integrationErrors";
 import {
   highestEntitlementTier,
+  isRevenueCatPublicSdkKey,
   tierForPackageIdentifier,
 } from "./revenueCatUtils";
 
@@ -26,6 +27,15 @@ test("uses tier precedence instead of lexical entitlement ordering", () => {
     "platinum",
   );
   assert.equal(highestEntitlementTier(["unrelated"]), "free");
+});
+
+test("accepts only platform-specific RevenueCat public SDK keys", () => {
+  assert.equal(isRevenueCatPublicSdkKey("ios", "appl_public-key"), true);
+  assert.equal(isRevenueCatPublicSdkKey("ios", "goog_public-key"), false);
+  assert.equal(isRevenueCatPublicSdkKey("ios", "appl_"), false);
+  assert.equal(isRevenueCatPublicSdkKey("ios", "test_public-key"), true);
+  assert.equal(isRevenueCatPublicSdkKey("android", "goog_public-key"), true);
+  assert.equal(isRevenueCatPublicSdkKey("android", "appl_public-key"), false);
 });
 
 test("normalizes a cancelled RevenueCat purchase without exposing a raw error", () => {
