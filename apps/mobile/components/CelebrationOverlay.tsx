@@ -10,18 +10,25 @@ import {
   View,
 } from "react-native";
 
+import { useReduceMotion } from "@/hooks/useReduceMotion";
 import { hapticSuccess } from "@/lib/haptics";
 
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get("window");
 const CONFETTI_COLORS = ["#FF5A00", "#FF8A00", "#22C55E", "#F59E0B", "#FFFFFF"];
 const PIECE_COUNT = 24;
+const HERO_PIECE_COUNT = 60;
 const VISIBLE_MS = 1900;
+const HERO_VISIBLE_MS = 3200;
+
+type CelebrationVariant = "standard" | "hero";
 
 interface CelebrationOverlayProps {
   visible: boolean;
   title: string;
   message?: string;
   onDone: () => void;
+  /** "hero" = the debt-free peak: more confetti, longer hold. */
+  variant?: CelebrationVariant;
 }
 
 interface PieceSpec {
@@ -40,19 +47,32 @@ interface PieceSpec {
  * Tap anywhere (or wait) to dismiss. Render this near the root of a screen
  * and drive it with a `visible` boolean.
  */
-export function CelebrationOverlay({ visible, title, message, onDone }: CelebrationOverlayProps) {
+export function CelebrationOverlay({
+  visible,
+  title,
+  message,
+  onDone,
+  variant = "standard",
+}: CelebrationOverlayProps) {
+  const reduceMotion = useReduceMotion();
+  const pieceCount = variant === "hero" ? HERO_PIECE_COUNT : PIECE_COUNT;
+  const holdMs = variant === "hero" ? HERO_VISIBLE_MS : VISIBLE_MS;
+
   const pieces = useMemo<PieceSpec[]>(
     () =>
-      Array.from({ length: PIECE_COUNT }, () => ({
-        startX: Math.random() * SCREEN_W,
-        color: CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)],
-        size: 7 + Math.random() * 7,
-        delay: Math.random() * 250,
-        drift: (Math.random() - 0.5) * 120,
-        duration: 1400 + Math.random() * 700,
-      })),
+      // Suppress confetti for reduce-motion users; the message + haptic remain.
+      reduceMotion
+        ? []
+        : Array.from({ length: pieceCount }, () => ({
+            startX: Math.random() * SCREEN_W,
+            color: CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)],
+            size: 7 + Math.random() * 7,
+            delay: Math.random() * 250,
+            drift: (Math.random() - 0.5) * 120,
+            duration: 1400 + Math.random() * 700,
+          })),
     // Reshuffle each time it becomes visible.
-    [visible],
+    [visible, pieceCount, reduceMotion],
   );
 
   if (!visible) return null;
@@ -63,7 +83,7 @@ export function CelebrationOverlay({ visible, title, message, onDone }: Celebrat
         {pieces.map((p, i) => (
           <ConfettiPiece key={i} spec={p} />
         ))}
-        <CelebrationBadge title={title} message={message} onDone={onDone} />
+        <CelebrationBadge title={title} message={message} holdMs={holdMs} onDone={onDone} />
       </Pressable>
     </View>
   );
@@ -72,10 +92,12 @@ export function CelebrationOverlay({ visible, title, message, onDone }: Celebrat
 function CelebrationBadge({
   title,
   message,
+  holdMs,
   onDone,
 }: {
   title: string;
   message?: string;
+  holdMs: number;
   onDone: () => void;
 }) {
   const scale = useRef(new Animated.Value(0.6)).current;
@@ -104,7 +126,7 @@ function CelebrationBadge({
           duration: 220,
           useNativeDriver: true,
         }),
-        Animated.delay(VISIBLE_MS),
+        Animated.delay(holdMs),
         Animated.timing(opacity, {
           toValue: 0,
           duration: 260,
@@ -121,7 +143,7 @@ function CelebrationBadge({
     return () => {
       animation.stop();
     };
-  }, [onDone, opacity, scale]);
+  }, [holdMs, onDone, opacity, scale]);
 
   return (
     <Animated.View

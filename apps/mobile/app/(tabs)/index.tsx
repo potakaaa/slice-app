@@ -1,6 +1,6 @@
 import { Feather } from "@expo/vector-icons";
 import { router } from "expo-router";
-import React from "react";
+import React, { useEffect } from "react";
 import {
   Platform,
   Pressable,
@@ -19,6 +19,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { SettlementReadinessCard } from "@/components/SettlementReadinessCard";
 import { TierBadge } from "@/components/TierBadge";
 import { useColors } from "@/hooks/useColors";
+import { celebrate } from "@/lib/celebrate";
 import { useAggregateProgram, useCreditors, useProfile } from "@/lib/sliceData";
 import {
   buildSimpleDebtProgram,
@@ -60,6 +61,15 @@ export default function DashboardScreen() {
   const programName = getPersonalProgramName(profile.name);
   const shouldPromptProgram = creditors.length > 0 && !debtProgram?.disclosureAccepted;
   const aggregateProgram = debtProgram ?? buildSimpleDebtProgram(totalDebt, profile.defaultMonthlySavings);
+
+  // M16: the user saved enough to make a real offer on their priority creditor —
+  // a major motivation moment. Celebrate once per creditor that reaches ready.
+  const readyCreditorId = readiness.isReadyNow ? readiness.priorityCreditor?.id : undefined;
+  useEffect(() => {
+    if (readyCreditorId) {
+      celebrate("m16_ready", { once: `m16_ready:${readyCreditorId}` });
+    }
+  }, [readyCreditorId]);
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const bottomPad = 84;

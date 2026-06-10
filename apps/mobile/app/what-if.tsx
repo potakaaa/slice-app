@@ -15,6 +15,7 @@ import {
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { useColors } from "@/hooks/useColors";
+import { celebrate } from "@/lib/celebrate";
 import { hapticSelection } from "@/lib/haptics";
 import { useCreditors, useProfile, useUpsertProfile } from "@/lib/sliceData";
 import {
@@ -54,6 +55,8 @@ export default function WhatIfScreen() {
   const setMonthly = (value: number) => {
     hapticSelection();
     setNewMonthly(Math.max(0, value));
+    // M9: the user is taking control of the numbers — a light nudge, once.
+    celebrate("m9_what_if", { once: true });
   };
 
   const handleUse = async () => {

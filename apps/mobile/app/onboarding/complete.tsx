@@ -10,11 +10,10 @@ import {
   Text,
   View,
 } from "react-native";
-import * as Haptics from "expo-haptics";
-
 import { Button } from "@/components/Button";
 import { SliceLogo } from "@/components/SliceLogo";
 import { useAuth } from "@/lib/auth";
+import { celebrate } from "@/lib/celebrate";
 import { integrationMessage } from "@/lib/integrationErrors";
 import { useCreateCreditor, useUpsertProfile } from "@/lib/sliceData";
 import { useAppStore } from "@/store/useAppStore";
@@ -62,7 +61,9 @@ export default function OnboardingComplete() {
       router.replace("/onboarding");
       return;
     }
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    // M5: "Your Program Is Ready" — the aha moment. Full celebration with the
+    // warm pride voice (its own success haptic), once per user.
+    celebrate("m5_first_plan", { once: true });
   }, [session, onboardingReadyForAuth, creditors.length]);
 
   const handleStart = async () => {

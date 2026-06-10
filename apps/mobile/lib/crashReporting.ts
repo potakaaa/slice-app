@@ -13,6 +13,8 @@
  *   3. In `reportError`: `Sentry.captureException(error, { extra: context })`
  */
 
+import { useAppStore } from "@/store/useAppStore";
+
 export type ErrorContext = Record<string, unknown> & {
   componentStack?: string;
   source?: string;
@@ -40,6 +42,17 @@ export function initCrashReporting(): void {
 
 export function reportError(error: Error, context: ErrorContext = {}): void {
   if (!initialized) initCrashReporting();
+
+  // A crash is a negative experience: suppress any review ask for a while so we
+  // never follow a bad moment with "rate us". Skip errors that originate from
+  // the review prompt itself to avoid a self-referential loop.
+  if (context.source !== "reviewPrompt" && context.source !== "reviewPrompt.launch") {
+    try {
+      useAppStore.getState().recordNegativeSignal();
+    } catch {
+      // Never let signal-stamping break error reporting.
+    }
+  }
 
   // Structured, greppable log. Replace the body with a vendor call to ship
   // these off-device.

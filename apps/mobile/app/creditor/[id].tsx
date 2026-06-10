@@ -16,12 +16,11 @@ import {
 import { Badge, StatusBadge } from "@/components/Badge";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
-import { CelebrationOverlay } from "@/components/CelebrationOverlay";
 import { ProgressBar } from "@/components/ProgressBar";
 import { UpgradePrompt } from "@/components/UpgradePrompt";
 import { useColors } from "@/hooks/useColors";
+import { celebrate } from "@/lib/celebrate";
 import { hapticSelection } from "@/lib/haptics";
-import { maybeRequestReview } from "@/lib/reviewPrompt";
 import {
   useContactLogs,
   useCreditors,
@@ -68,7 +67,6 @@ export default function CreditorDetailScreen() {
   const recordHappyMoment = useAppStore((s) => s.recordHappyMoment);
   const creditor = creditors.find((c) => c.id === id);
   const [notes, setNotes] = useState(creditor?.notes ?? "");
-  const [celebrate, setCelebrate] = useState(false);
   const [expandedScript, setExpandedScript] = useState<string | null>(null);
   const topPad = Platform.OS === "web" ? 67 : 0;
   const isSilver = profile.tier !== "free";
@@ -115,23 +113,26 @@ export default function CreditorDetailScreen() {
   };
 
   // Pillar 3 (Emotional Connection): settling a creditor is a real
-  // accomplishment — celebrate it, then ask happy users for a review.
+  // accomplishment — celebrate it (the host then asks happy users for a review).
+  // Clearing the LAST creditor is debt-free, the ultimate peak: a distinct hero
+  // celebration, and a heavier goodwill weight.
   const handleStatusChange = (status: CreditorStatus) => {
     if (status === creditor.status) return;
     const becameSettled = status === "settled" && creditor.status !== "settled";
     updateCreditor.mutate({ id: creditor.id, updates: { status } });
     if (becameSettled) {
-      recordHappyMoment();
-      setCelebrate(true);
+      const becameDebtFree = creditors
+        .filter((c) => c.id !== creditor.id)
+        .every((c) => c.status === "settled");
+      recordHappyMoment(becameDebtFree ? 3 : 1);
+      if (becameDebtFree) {
+        celebrate("m19_debt_free", { once: true });
+      } else {
+        celebrate("m17_settled");
+      }
     } else {
       hapticSelection();
     }
-  };
-
-  const handleCelebrationDone = () => {
-    setCelebrate(false);
-    // Fire at peak positive emotion; all gating lives in maybeRequestReview.
-    void maybeRequestReview();
   };
 
   const bottomPad = Platform.OS === "web" ? 34 : 16;
@@ -473,13 +474,6 @@ export default function CreditorDetailScreen() {
           Always get agreements in writing before making any payment.
         </Text>
       </ScrollView>
-
-      <CelebrationOverlay
-        visible={celebrate}
-        title="Debt Settled!"
-        message={`${creditor.name} is marked settled — you're one step closer to debt-free.`}
-        onDone={handleCelebrationDone}
-      />
     </SafeAreaView>
   );
 }

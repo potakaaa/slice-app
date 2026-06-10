@@ -16,6 +16,7 @@ import {
 import { Button } from "@/components/Button";
 import { useColors } from "@/hooks/useColors";
 import { useAuth } from "@/lib/auth";
+import { celebrate } from "@/lib/celebrate";
 import { useAppStore } from "@/store/useAppStore";
 import type { PrimaryGoal } from "@/types";
 
@@ -45,6 +46,9 @@ export default function OnboardingStep3() {
       primaryGoal: goal,
     });
     markOnboardingReady();
+    // M4: goal chosen — a light nudge (first time only). If this leads straight
+    // to "Program Ready", that full M5 celebration outranks and replaces it.
+    celebrate("m4_goal", { once: true });
     router.replace(session ? "/onboarding/complete" : "/auth");
   };
 

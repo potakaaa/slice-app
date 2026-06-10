@@ -11,10 +11,13 @@ import React from "react";
 import { Platform } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
+import { CelebrationHost } from "@/components/CelebrationHost";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AuthProvider } from "@/lib/auth";
 import { initCrashReporting, reportError } from "@/lib/crashReporting";
+import { maybeRequestReviewOnLaunch } from "@/lib/reviewPrompt";
 import { RevenueCatProvider } from "@/lib/revenueCat";
+import { useAppStore } from "@/store/useAppStore";
 
 initCrashReporting();
 
@@ -70,6 +73,22 @@ export default function RootLayout() {
     Inter_700Bold,
   });
 
+  // Count this app open exactly once per cold start, then — on the 2nd/3rd
+  // open — attempt an early review ask after the UI has settled. Waits for
+  // persisted state to hydrate so the session count and gates are accurate.
+  const hasHydrated = useAppStore((s) => s.hasHydrated);
+  const sessionRecorded = React.useRef(false);
+  React.useEffect(() => {
+    if (!hasHydrated || sessionRecorded.current) return;
+    sessionRecorded.current = true;
+    useAppStore.getState().recordSession();
+    // Let the home screen render first; never race the splash/launch.
+    const timer = setTimeout(() => {
+      void maybeRequestReviewOnLaunch();
+    }, 2500);
+    return () => clearTimeout(timer);
+  }, [hasHydrated]);
+
   if (!fontsLoaded && !fontError) return null;
 
   return (
@@ -81,6 +100,7 @@ export default function RootLayout() {
           <AuthProvider>
             <RevenueCatProvider>
               <RootLayoutNav />
+              <CelebrationHost />
             </RevenueCatProvider>
           </AuthProvider>
         </QueryClientProvider>

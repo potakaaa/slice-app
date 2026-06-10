@@ -25,9 +25,20 @@ interface AppStore {
   creditors: Creditor[];
 
   // Delight & review state (Pillar 3: Emotional Connection)
+  /** Weighted goodwill score — bigger wins add more than routine ones. */
   happyMomentCount: number;
   reviewPromptedVersion: string | null;
   celebratedMilestones: string[];
+  /** Last-shown copy variant per milestone key — powers no-repeat rotation. */
+  celebrationCopyIndex: Record<string, number>;
+  /** First-ever app launch (ms epoch); gates install-age before any ask. */
+  firstLaunchAt: number | null;
+  /** Distinct app opens; powers the early "2nd/3rd open" launch prompt. */
+  sessionCount: number;
+  /** Last time ANY review prompt fired (ms epoch); enforces global cooldown. */
+  lastPromptAt: number | null;
+  /** Last negative signal (crash/failed payment/support); suppresses asks. */
+  lastNegativeSignalAt: number | null;
 
   setHasHydrated: (hasHydrated: boolean) => void;
   updateProfile: (updates: Partial<UserProfile>) => void;
@@ -37,12 +48,21 @@ interface AppStore {
   setAwaitingEmailConfirmation: (awaiting: boolean) => void;
   clearDraft: () => void;
 
-  /** Record an accomplishment that builds goodwill toward a review ask. */
-  recordHappyMoment: () => void;
+  /**
+   * Record an accomplishment that builds goodwill toward a review ask.
+   * Weight reflects emotional magnitude (routine settle = 1, debt-free = 3).
+   */
+  recordHappyMoment: (weight?: number) => void;
+  /** Record an app open; stamps first-launch on the very first call. */
+  recordSession: () => void;
+  /** Stamp a negative experience so we don't ask for a review right after. */
+  recordNegativeSignal: () => void;
   /** Remember we asked for a review on this app version (prevents re-asking). */
   markReviewPrompted: (version: string) => void;
   /** Mark a one-time milestone celebration as shown; returns false if already shown. */
   markMilestoneCelebrated: (key: string) => boolean;
+  /** Advance (and persist) the copy-rotation index for a milestone key. */
+  setCelebrationCopyIndex: (key: string, index: number) => void;
 }
 
 export const useAppStore = create<AppStore>()(
@@ -57,6 +77,11 @@ export const useAppStore = create<AppStore>()(
       happyMomentCount: 0,
       reviewPromptedVersion: null,
       celebratedMilestones: [],
+      celebrationCopyIndex: {},
+      firstLaunchAt: null,
+      sessionCount: 0,
+      lastPromptAt: null,
+      lastNegativeSignalAt: null,
 
       setHasHydrated: (hasHydrated) => set({ hasHydrated }),
       updateProfile: (updates) =>
@@ -80,9 +105,18 @@ export const useAppStore = create<AppStore>()(
           awaitingEmailConfirmation: false,
         }),
 
-      recordHappyMoment: () =>
-        set((state) => ({ happyMomentCount: state.happyMomentCount + 1 })),
-      markReviewPrompted: (version) => set({ reviewPromptedVersion: version }),
+      recordHappyMoment: (weight = 1) =>
+        set((state) => ({
+          happyMomentCount: state.happyMomentCount + Math.max(1, weight),
+        })),
+      recordSession: () =>
+        set((state) => ({
+          firstLaunchAt: state.firstLaunchAt ?? Date.now(),
+          sessionCount: state.sessionCount + 1,
+        })),
+      recordNegativeSignal: () => set({ lastNegativeSignalAt: Date.now() }),
+      markReviewPrompted: (version) =>
+        set({ reviewPromptedVersion: version, lastPromptAt: Date.now() }),
       markMilestoneCelebrated: (key) => {
         if (get().celebratedMilestones.includes(key)) return false;
         set((state) => ({
@@ -90,6 +124,10 @@ export const useAppStore = create<AppStore>()(
         }));
         return true;
       },
+      setCelebrationCopyIndex: (key, index) =>
+        set((state) => ({
+          celebrationCopyIndex: { ...state.celebrationCopyIndex, [key]: index },
+        })),
     }),
     {
       name: "slice-onboarding-draft",
@@ -103,6 +141,11 @@ export const useAppStore = create<AppStore>()(
         happyMomentCount: state.happyMomentCount,
         reviewPromptedVersion: state.reviewPromptedVersion,
         celebratedMilestones: state.celebratedMilestones,
+        celebrationCopyIndex: state.celebrationCopyIndex,
+        firstLaunchAt: state.firstLaunchAt,
+        sessionCount: state.sessionCount,
+        lastPromptAt: state.lastPromptAt,
+        lastNegativeSignalAt: state.lastNegativeSignalAt,
       }),
       onRehydrateStorage: () => (state) => {
         state?.setHasHydrated(true);

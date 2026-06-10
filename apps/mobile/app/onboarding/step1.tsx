@@ -15,6 +15,7 @@ import {
 
 import { Button } from "@/components/Button";
 import { useColors } from "@/hooks/useColors";
+import { celebrate } from "@/lib/celebrate";
 import { useAppStore } from "@/store/useAppStore";
 import {
   formatCurrency,
@@ -53,6 +54,8 @@ export default function OnboardingStep1() {
       currentSavedCash: parseMoneyInput(savedSoFar),
       defaultSettlementPercentage: settlementPct,
     });
+    // M2: settlement fund set up — a light, encouraging nudge (first time only).
+    celebrate("m2_fund_setup", { once: true });
     router.push("/onboarding/step2");
   };
 
