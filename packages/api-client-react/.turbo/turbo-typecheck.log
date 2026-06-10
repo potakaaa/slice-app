@@ -1,0 +1,4 @@
+
+> @workspace/api-client-react@0.0.0 typecheck /Volumes/Extreme_SSD/Projects/React Native/slice-app/packages/api-client-react
+> tsc -p tsconfig.json
+

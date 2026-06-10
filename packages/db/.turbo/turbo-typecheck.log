@@ -1,0 +1,4 @@
+
+> @workspace/db@0.0.0 typecheck /Volumes/Extreme_SSD/Projects/React Native/slice-app/packages/db
+> tsc -p tsconfig.json
+

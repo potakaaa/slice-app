@@ -1,0 +1,5 @@
+
+> @workspace/api-server@0.0.0 build /Volumes/Extreme_SSD/Projects/React Native/slice-app/apps/backend
+> node ./build.mjs
+
+ ELIFECYCLE  Command failed.

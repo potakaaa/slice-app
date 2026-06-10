@@ -1,0 +1,4 @@
+
+> @workspace/api-server@0.0.0 typecheck /Volumes/Extreme_SSD/Projects/React Native/slice-app/apps/backend
+> tsc -p tsconfig.json --noEmit
+
