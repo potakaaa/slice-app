@@ -11,7 +11,7 @@ The Android package remains configured, but Android submission is intentionally 
 - RevenueCat project access.
 - Supabase production project access.
 - Final legal values for Privacy Policy and Terms.
-- Public support email, `https://slice.marcfeinberg.com`, and `https://slice.marcfeinberg.com/privacy-policy`.
+- Public support email, `https://slicemydebt.com`, and `https://slicemydebt.com/privacy-policy`.
 - App Review demo account with test data.
 
 ## EAS Builds

@@ -14,6 +14,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { CreditorCard } from "@/components/CreditorCard";
 import { EmptyState } from "@/components/EmptyState";
+import { Skeleton } from "@/components/Skeleton";
 import { useColors } from "@/hooks/useColors";
 import { useCreditors } from "@/lib/sliceData";
 import { getSortedBySnowball, getTotalDebt, formatCurrency } from "@/utils/calculations";
@@ -21,7 +22,7 @@ import { getSortedBySnowball, getTotalDebt, formatCurrency } from "@/utils/calcu
 export default function CreditorsScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { creditors } = useCreditors();
+  const { creditors, isLoading } = useCreditors();
   const [search, setSearch] = useState("");
 
   const sorted = getSortedBySnowball(creditors);
@@ -47,6 +48,8 @@ export default function CreditorsScreen() {
           <Pressable
             onPress={() => router.push("/creditor/add")}
             style={[styles.addBtn, { backgroundColor: colors.primary }]}
+            accessibilityRole="button"
+            accessibilityLabel="Add creditor"
           >
             <Feather name="plus" size={20} color="#FFFFFF" />
           </Pressable>
@@ -61,14 +64,25 @@ export default function CreditorsScreen() {
             style={[styles.searchInput, { color: colors.foreground }]}
           />
           {search.length > 0 && (
-            <Pressable onPress={() => setSearch("")}>
+            <Pressable
+              onPress={() => setSearch("")}
+              hitSlop={10}
+              accessibilityRole="button"
+              accessibilityLabel="Clear search"
+            >
               <Feather name="x" size={16} color={colors.mutedForeground} />
             </Pressable>
           )}
         </View>
       </View>
 
-      {creditors.length === 0 ? (
+      {isLoading && creditors.length === 0 ? (
+        <View style={[styles.list, { paddingBottom: bottomPad }]}>
+          {[0, 1, 2, 3].map((i) => (
+            <Skeleton key={i} width="100%" height={110} radius={12} style={styles.skeletonCard} />
+          ))}
+        </View>
+      ) : creditors.length === 0 ? (
         <EmptyState
           icon="credit-card"
           title="No creditors yet"
@@ -144,6 +158,7 @@ const styles = StyleSheet.create({
     height: 42,
   },
   list: { padding: 16 },
+  skeletonCard: { marginBottom: 12 },
   listHeader: {
     fontSize: 12,
     fontFamily: "Inter_400Regular",

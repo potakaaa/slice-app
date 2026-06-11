@@ -1,6 +1,6 @@
 import { Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
   KeyboardAvoidingView,
@@ -23,18 +23,17 @@ type Mode = "signin" | "signup";
 
 export default function AuthScreen() {
   const colors = useColors();
+  const params = useLocalSearchParams<{ mode?: string }>();
   const { session, signIn, signUp } = useAuth();
   const draftProfile = useAppStore((state) => state.profile);
-  const onboardingReadyForAuth = useAppStore((state) => state.onboardingReadyForAuth);
   const awaitingEmailConfirmation = useAppStore(
     (state) => state.awaitingEmailConfirmation
   );
   const setAwaitingEmailConfirmation = useAppStore(
     (state) => state.setAwaitingEmailConfirmation
   );
-  const clearDraft = useAppStore((state) => state.clearDraft);
   const [mode, setMode] = useState<Mode>(
-    onboardingReadyForAuth ? "signup" : "signin"
+    params.mode === "signup" ? "signup" : "signin"
   );
   const [name, setName] = useState(draftProfile.name);
   const [email, setEmail] = useState(draftProfile.email);
@@ -50,18 +49,11 @@ export default function AuthScreen() {
 
   useEffect(() => {
     if (!session) return;
-    if (onboardingReadyForAuth) {
-      setAwaitingEmailConfirmation(false);
-      router.replace("/onboarding/complete");
-    } else if (!onboardingReadyForAuth) {
-      router.replace("/");
-    }
-  }, [
-    awaitingEmailConfirmation,
-    onboardingReadyForAuth,
-    session,
-    setAwaitingEmailConfirmation,
-  ]);
+    // Auth now comes before onboarding. Hand off to the root router, which sends
+    // new accounts into onboarding details and returning users to the dashboard.
+    setAwaitingEmailConfirmation(false);
+    router.replace("/");
+  }, [session, setAwaitingEmailConfirmation]);
 
   const canSubmit =
     email.trim().includes("@") &&
@@ -74,13 +66,8 @@ export default function AuthScreen() {
     try {
       if (mode === "signin") {
         await signIn(email, password);
-        if (onboardingReadyForAuth) {
-          setAwaitingEmailConfirmation(false);
-          router.replace("/onboarding/complete");
-        } else {
-          clearDraft();
-          router.replace("/");
-        }
+        setAwaitingEmailConfirmation(false);
+        router.replace("/");
       } else {
         const nextSession = await signUp(email, password, name);
         if (!nextSession) {
@@ -88,14 +75,8 @@ export default function AuthScreen() {
           return;
         }
         setAwaitingEmailConfirmation(false);
-        // Only jump to the program summary when the user actually completed the
-        // onboarding flow first. A direct sign-up with no draft must go through
-        // onboarding (routed by "/") instead of a half-empty complete screen.
-        if (onboardingReadyForAuth) {
-          router.replace("/onboarding/complete");
-        } else {
-          router.replace("/");
-        }
+        // New account: the root router sends them into onboarding details next.
+        router.replace("/");
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Authentication failed");

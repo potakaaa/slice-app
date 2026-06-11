@@ -18,14 +18,23 @@ import { useColors } from "@/hooks/useColors";
 import { useAuth } from "@/lib/auth";
 import { celebrate } from "@/lib/celebrate";
 import { useAppStore } from "@/store/useAppStore";
-import type { PrimaryGoal } from "@/types";
+import {
+  formatCurrency,
+  formatMoneyInput,
+  generateId,
+  parseMoneyInput,
+} from "@/utils/calculations";
 
-const GOALS: { value: PrimaryGoal; label: string; desc: string; icon: string }[] = [
-  { value: "settle", label: "Settle My Debt", desc: "Negotiate with creditors for less than I owe", icon: "check-circle" },
-  { value: "repair", label: "Repair My Credit", desc: "Improve my credit score after settling", icon: "trending-up" },
-  { value: "prepare", label: "Prepare for Calls", desc: "Know what to say when creditors call me", icon: "phone" },
-  { value: "payoff", label: "Build a Payoff Plan", desc: "Create a structured plan to become debt-free", icon: "calendar" },
+const COMMON_EXPENSES = [
+  "Rent / Mortgage",
+  "Groceries",
+  "Utilities",
+  "Transportation",
+  "Insurance",
+  "Subscriptions",
 ];
+
+type ExpenseRow = { id: string; label: string; amount: string };
 
 export default function OnboardingStep3() {
   const colors = useColors();
@@ -34,23 +43,77 @@ export default function OnboardingStep3() {
   const updateProfile = useAppStore((s) => s.updateProfile);
   const markOnboardingReady = useAppStore((s) => s.markOnboardingReady);
 
-  const [creditScore, setCreditScore] = useState(
-    profile.creditScore > 0 ? String(profile.creditScore) : ""
+  const [income, setIncome] = useState(formatMoneyInput(profile.monthlyIncome));
+  const [expenses, setExpenses] = useState<ExpenseRow[]>(
+    profile.monthlyExpenses.length > 0
+      ? profile.monthlyExpenses.map((e) => ({
+          id: e.id,
+          label: e.label,
+          amount: formatMoneyInput(e.amount),
+        }))
+      : [{ id: generateId(), label: "", amount: "" }]
   );
-  const [goal, setGoal] = useState<PrimaryGoal>(profile.primaryGoal);
   const topPad = Platform.OS === "web" ? 67 : 0;
 
-  const handleNext = () => {
+  const incomeAmount = parseMoneyInput(income);
+  const totalExpenses = expenses.reduce(
+    (sum, e) => sum + parseMoneyInput(e.amount),
+    0
+  );
+  const remaining = incomeAmount - totalExpenses;
+  const isSurplus = remaining >= 0;
+  const hasBudget = incomeAmount > 0 && totalExpenses > 0;
+
+  const canContinue = incomeAmount > 0;
+
+  const updateExpense = (id: string, field: "label" | "amount", value: string) =>
+    setExpenses((prev) =>
+      prev.map((e) =>
+        e.id === id
+          ? {
+              ...e,
+              [field]: field === "amount" ? formatMoneyInput(value) : value,
+            }
+          : e
+      )
+    );
+
+  const addExpense = (label = "") =>
+    setExpenses((prev) => [...prev, { id: generateId(), label, amount: "" }]);
+
+  const removeExpense = (id: string) =>
+    setExpenses((prev) =>
+      prev.length > 1 ? prev.filter((e) => e.id !== id) : prev
+    );
+
+  const handleFinish = () => {
+    const cleaned = expenses
+      .filter((e) => e.label.trim() && parseMoneyInput(e.amount) > 0)
+      .map((e) => ({
+        id: e.id,
+        label: e.label.trim(),
+        amount: parseMoneyInput(e.amount),
+      }));
+
     updateProfile({
-      creditScore: Number(creditScore) || 0,
-      primaryGoal: goal,
+      monthlyIncome: incomeAmount,
+      monthlyExpenses: cleaned,
     });
     markOnboardingReady();
-    // M4: goal chosen — a light nudge (first time only). If this leads straight
-    // to "Program Ready", that full M5 celebration outranks and replaces it.
-    celebrate("m4_goal", { once: true });
+    // Budget complete — a full, confetti-grade "you did it again" moment
+    // (first time only). If this leads straight into "Program Ready", that
+    // milestone outranks and replaces it.
+    celebrate("m4c_budget", { once: true });
     router.replace(session ? "/onboarding/complete" : "/auth");
   };
+
+  // Categories the user hasn't already started a row for — keeps quick-add tidy.
+  const usedLabels = new Set(
+    expenses.map((e) => e.label.trim().toLowerCase())
+  );
+  const suggestions = COMMON_EXPENSES.filter(
+    (label) => !usedLabels.has(label.toLowerCase())
+  );
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: colors.background, paddingTop: topPad }]}>
@@ -71,7 +134,7 @@ export default function OnboardingStep3() {
                 style={[
                   styles.dot,
                   {
-                    backgroundColor: step <= 3 ? colors.primary : colors.muted,
+                    backgroundColor: colors.primary,
                     width: step === 3 ? 24 : 8,
                   },
                 ]}
@@ -86,92 +149,161 @@ export default function OnboardingStep3() {
           keyboardShouldPersistTaps="handled"
         >
           <Text style={[styles.title, { color: colors.foreground }]}>
-            Almost there!
+            Your monthly budget
           </Text>
           <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>
-            Step 3 of 3 — Credit score and your main goal
+            Step 3 of 3 — See what's left each month to put toward your debt
           </Text>
 
           <View style={styles.field}>
             <Text style={[styles.label, { color: colors.foreground }]}>
-              Current Credit Score{" "}
-              <Text style={{ color: colors.mutedForeground }}>(optional)</Text>
+              Total Monthly Income
             </Text>
             <Text style={[styles.hint, { color: colors.mutedForeground }]}>
-              We use this to track your progress over time. You can update it anytime.
+              Your take-home pay each month, after taxes.
             </Text>
-            <View style={[styles.scoreInput, { borderColor: colors.border, backgroundColor: colors.card }]}>
+            <View style={[styles.dollarInput, { borderColor: colors.border, backgroundColor: colors.card }]}>
+              <Text style={[styles.dollar, { color: colors.mutedForeground }]}>$</Text>
               <TextInput
-                value={creditScore}
-                onChangeText={setCreditScore}
-                placeholder="e.g., 580"
-                placeholderTextColor={colors.mutedForeground}
+                value={income}
+                onChangeText={(value) => setIncome(formatMoneyInput(value))}
                 keyboardType="numeric"
-                style={[styles.scoreField, { color: colors.foreground }]}
-                maxLength={3}
+                placeholder="3,500"
+                placeholderTextColor={colors.mutedForeground}
+                style={[styles.dollarTextInput, { color: colors.foreground }]}
               />
-              <Text style={[styles.scoreRange, { color: colors.mutedForeground }]}>
-                / 850
-              </Text>
+              <Text style={[styles.perMonth, { color: colors.mutedForeground }]}>/mo</Text>
             </View>
-            {Number(creditScore) > 0 && (
-              <Text style={[styles.scoreDesc, { color: colors.mutedForeground }]}>
-                {Number(creditScore) < 580
-                  ? "Poor — Settlement may be your best option"
-                  : Number(creditScore) < 670
-                    ? "Fair — Good time to start negotiating"
-                    : "Good — You have some leverage with creditors"}
+          </View>
+
+          <View style={styles.field}>
+            <Text style={[styles.label, { color: colors.foreground }]}>
+              Monthly Expenses
+            </Text>
+            <Text style={[styles.hint, { color: colors.mutedForeground }]}>
+              Add your recurring costs. The more honest, the more accurate your plan.
+            </Text>
+
+            <View style={styles.expenseList}>
+              {expenses.map((e) => (
+                <View key={e.id} style={styles.expenseRow}>
+                  <TextInput
+                    value={e.label}
+                    onChangeText={(v) => updateExpense(e.id, "label", v)}
+                    placeholder="Expense name"
+                    placeholderTextColor={colors.mutedForeground}
+                    style={[styles.expenseLabel, { borderColor: colors.border, color: colors.foreground, backgroundColor: colors.card }]}
+                  />
+                  <View style={[styles.expenseAmount, { borderColor: colors.border, backgroundColor: colors.card }]}>
+                    <Text style={[styles.dollar, { color: colors.mutedForeground }]}>$</Text>
+                    <TextInput
+                      value={e.amount}
+                      onChangeText={(v) => updateExpense(e.id, "amount", v)}
+                      keyboardType="numeric"
+                      placeholder="0"
+                      placeholderTextColor={colors.mutedForeground}
+                      style={[styles.expenseAmountField, { color: colors.foreground }]}
+                    />
+                  </View>
+                  <Pressable
+                    onPress={() => removeExpense(e.id)}
+                    disabled={expenses.length === 1}
+                    style={styles.removeBtn}
+                    hitSlop={8}
+                  >
+                    <Feather
+                      name="trash-2"
+                      size={18}
+                      color={expenses.length === 1 ? colors.muted : colors.destructive}
+                    />
+                  </Pressable>
+                </View>
+              ))}
+            </View>
+
+            <Pressable
+              onPress={() => addExpense()}
+              style={[styles.addBtn, { borderColor: colors.border }]}
+            >
+              <Feather name="plus" size={16} color={colors.primary} />
+              <Text style={[styles.addBtnText, { color: colors.primary }]}>
+                Add expense
               </Text>
+            </Pressable>
+
+            {suggestions.length > 0 && (
+              <View style={styles.chipRow}>
+                {suggestions.map((label) => (
+                  <Pressable
+                    key={label}
+                    onPress={() => addExpense(label)}
+                    style={[styles.chip, { backgroundColor: colors.muted, borderColor: colors.border }]}
+                  >
+                    <Feather name="plus" size={12} color={colors.mutedForeground} />
+                    <Text style={[styles.chipText, { color: colors.foreground }]}>
+                      {label}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
             )}
           </View>
 
-          <View style={styles.field}>
-            <Text style={[styles.label, { color: colors.foreground }]}>
-              What is your main goal?
-            </Text>
-            <View style={styles.goalList}>
-              {GOALS.map((g) => (
-                <Pressable
-                  key={g.value}
-                  onPress={() => setGoal(g.value)}
+          {hasBudget && (
+            <View
+              style={[
+                styles.summary,
+                {
+                  backgroundColor: isSurplus ? colors.secondary : colors.muted,
+                  borderColor: isSurplus ? colors.success : colors.warning,
+                },
+              ]}
+            >
+              <View style={styles.summaryLine}>
+                <Text style={[styles.summaryKey, { color: colors.mutedForeground }]}>
+                  Income
+                </Text>
+                <Text style={[styles.summaryVal, { color: colors.foreground }]}>
+                  {formatCurrency(incomeAmount)}
+                </Text>
+              </View>
+              <View style={styles.summaryLine}>
+                <Text style={[styles.summaryKey, { color: colors.mutedForeground }]}>
+                  Expenses
+                </Text>
+                <Text style={[styles.summaryVal, { color: colors.foreground }]}>
+                  −{formatCurrency(totalExpenses)}
+                </Text>
+              </View>
+              <View style={[styles.summaryDivider, { backgroundColor: colors.border }]} />
+              <View style={styles.summaryLine}>
+                <Text style={[styles.summaryResultLabel, { color: colors.foreground }]}>
+                  {isSurplus ? "Left over each month" : "Short each month"}
+                </Text>
+                <Text
                   style={[
-                    styles.goalCard,
-                    {
-                      borderColor:
-                        goal === g.value ? colors.primary : colors.border,
-                      backgroundColor:
-                        goal === g.value ? colors.secondary : colors.card,
-                    },
+                    styles.summaryResultVal,
+                    { color: isSurplus ? colors.success : colors.warning },
                   ]}
                 >
-                  <View style={[styles.goalIcon, { backgroundColor: goal === g.value ? colors.primary : colors.muted }]}>
-                    <Feather
-                      name={g.icon as any}
-                      size={18}
-                      color={goal === g.value ? "#FFFFFF" : colors.mutedForeground}
-                    />
-                  </View>
-                  <View style={styles.goalText}>
-                    <Text style={[styles.goalLabel, { color: goal === g.value ? colors.primary : colors.foreground }]}>
-                      {g.label}
-                    </Text>
-                    <Text style={[styles.goalDesc, { color: colors.mutedForeground }]}>
-                      {g.desc}
-                    </Text>
-                  </View>
-                  {goal === g.value && (
-                    <Feather name="check-circle" size={20} color={colors.primary} />
-                  )}
-                </Pressable>
-              ))}
+                  {isSurplus ? "" : "−"}
+                  {formatCurrency(Math.abs(remaining))}
+                </Text>
+              </View>
+              <Text style={[styles.summaryNote, { color: colors.mutedForeground }]}>
+                {isSurplus
+                  ? "That's what you can realistically put toward settling your debt."
+                  : "Your expenses outpace your income. We'll help you find room as you go — every bit counts."}
+              </Text>
             </View>
-          </View>
+          )}
         </ScrollView>
 
         <View style={[styles.footer, { borderTopColor: colors.border, paddingBottom: Platform.OS === "web" ? 34 : 16 }]}>
           <Button
-            label="Build My Debt Program"
-            onPress={handleNext}
+            label="Finish — Build My Program"
+            onPress={handleFinish}
+            disabled={!canContinue}
             fullWidth
           />
         </View>
@@ -200,35 +332,88 @@ const styles = StyleSheet.create({
   field: { gap: 8 },
   label: { fontSize: 14, fontFamily: "Inter_600SemiBold" },
   hint: { fontSize: 12, fontFamily: "Inter_400Regular" },
-  scoreInput: {
+  dollarInput: {
     flexDirection: "row",
     alignItems: "center",
     borderWidth: 1,
     borderRadius: 10,
-    paddingHorizontal: 16,
-    height: 54,
+    paddingHorizontal: 14,
+    height: 50,
   },
-  scoreField: { flex: 1, fontSize: 24, fontFamily: "Inter_700Bold" },
-  scoreRange: { fontSize: 16, fontFamily: "Inter_400Regular" },
-  scoreDesc: { fontSize: 12, fontFamily: "Inter_400Regular", fontStyle: "italic" },
-  goalList: { gap: 10 },
-  goalCard: {
+  dollar: { fontSize: 16, fontFamily: "Inter_600SemiBold", marginRight: 4 },
+  dollarTextInput: {
+    flex: 1,
+    fontSize: 15,
+    fontFamily: "Inter_400Regular",
+    height: 50,
+  },
+  perMonth: { fontSize: 13, fontFamily: "Inter_400Regular" },
+  expenseList: { gap: 10 },
+  expenseRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  expenseLabel: {
+    flex: 1,
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    height: 46,
+    fontSize: 14,
+    fontFamily: "Inter_400Regular",
+  },
+  expenseAmount: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 14,
-    borderRadius: 12,
-    borderWidth: 1.5,
-    gap: 12,
-  },
-  goalIcon: {
-    width: 40,
-    height: 40,
+    borderWidth: 1,
     borderRadius: 10,
+    paddingHorizontal: 12,
+    height: 46,
+    width: 110,
+  },
+  expenseAmountField: {
+    flex: 1,
+    fontSize: 14,
+    fontFamily: "Inter_400Regular",
+    height: 46,
+  },
+  removeBtn: { padding: 4 },
+  addBtn: {
+    flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
+    gap: 6,
+    borderWidth: 1,
+    borderStyle: "dashed",
+    borderRadius: 10,
+    height: 44,
+    marginTop: 2,
   },
-  goalText: { flex: 1 },
-  goalLabel: { fontSize: 14, fontFamily: "Inter_600SemiBold" },
-  goalDesc: { fontSize: 12, fontFamily: "Inter_400Regular", marginTop: 2 },
+  addBtnText: { fontSize: 14, fontFamily: "Inter_600SemiBold" },
+  chipRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 4 },
+  chip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+  },
+  chipText: { fontSize: 13, fontFamily: "Inter_500Medium" },
+  summary: {
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 16,
+    gap: 8,
+  },
+  summaryLine: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  summaryKey: { fontSize: 13, fontFamily: "Inter_400Regular" },
+  summaryVal: { fontSize: 14, fontFamily: "Inter_500Medium" },
+  summaryDivider: { height: 1, marginVertical: 2 },
+  summaryResultLabel: { fontSize: 14, fontFamily: "Inter_600SemiBold" },
+  summaryResultVal: { fontSize: 20, fontFamily: "Inter_700Bold" },
+  summaryNote: { fontSize: 12, fontFamily: "Inter_400Regular", lineHeight: 17 },
   footer: { padding: 20, paddingTop: 12, borderTopWidth: 1 },
 });

@@ -16,12 +16,15 @@ import { SliceLogo } from "@/components/SliceLogo";
 import { SummaryCard } from "@/components/SummaryCard";
 import { CreditorCard } from "@/components/CreditorCard";
 import { EmptyState } from "@/components/EmptyState";
+import { SavingsAccountPrompt } from "@/components/SavingsAccountPrompt";
 import { SettlementReadinessCard } from "@/components/SettlementReadinessCard";
+import { SkeletonScreen } from "@/components/Skeleton";
 import { TierBadge } from "@/components/TierBadge";
 import { TourWelcomeSheet } from "@/components/tour";
 import { useColors } from "@/hooks/useColors";
 import { celebrate } from "@/lib/celebrate";
 import { useAggregateProgram, useCreditors, useProfile } from "@/lib/sliceData";
+import { useAppStore } from "@/store/useAppStore";
 import {
   buildSimpleDebtProgram,
   calcSettlementReadiness,
@@ -29,7 +32,6 @@ import {
   getMaxProgramLength,
   getSortedBySnowball,
   getTotalDebt,
-  getTotalMonthlySavings,
   getTotalSettlementTarget,
 } from "@/utils/calculations";
 
@@ -43,12 +45,12 @@ export default function DashboardScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { profile } = useProfile();
-  const { creditors } = useCreditors();
+  const { creditors, isLoading } = useCreditors();
   const { debtProgram } = useAggregateProgram();
+  const savingsAccountCreated = useAppStore((s) => s.savingsAccountCreated);
 
   const totalDebt = getTotalDebt(creditors);
   const totalTarget = getTotalSettlementTarget(creditors);
-  const totalSavings = getTotalMonthlySavings(creditors);
   const months = getMaxProgramLength(creditors);
   const savings = totalDebt - totalTarget;
   const savingsRatio = totalDebt > 0 ? Math.round((savings / totalDebt) * 100) : 0;
@@ -60,7 +62,6 @@ export default function DashboardScreen() {
     profile.defaultMonthlySavings
   );
   const programName = getPersonalProgramName(profile.name);
-  const shouldPromptProgram = creditors.length > 0 && !debtProgram?.disclosureAccepted;
   const aggregateProgram = debtProgram ?? buildSimpleDebtProgram(totalDebt, profile.defaultMonthlySavings);
 
   // M16: the user saved enough to make a real offer on their priority creditor —
@@ -91,20 +92,36 @@ export default function DashboardScreen() {
           </View>
         </View>
         <View style={styles.headerRight}>
-          <Pressable onPress={() => router.push("/membership")} accessibilityRole="button">
+          <Pressable
+            onPress={() => router.push("/membership")}
+            accessibilityRole="button"
+            accessibilityLabel="View your membership and plan"
+          >
             <TierBadge tier={profile.tier} />
           </Pressable>
-          <Pressable onPress={() => router.push("/profile")} style={styles.profileBtn}>
+          <Pressable
+            onPress={() => router.push("/profile")}
+            style={styles.profileBtn}
+            hitSlop={12}
+            accessibilityRole="button"
+            accessibilityLabel="Profile and settings"
+          >
             <Feather name="user" size={20} color={colors.foreground} />
           </Pressable>
         </View>
       </View>
 
       <ScrollView
-        contentContainerStyle={[styles.scroll, { paddingBottom: bottomPad }]}
+        contentContainerStyle={[
+          styles.scroll,
+          { paddingBottom: bottomPad },
+          creditors.length === 0 && styles.scrollEmpty,
+        ]}
         showsVerticalScrollIndicator={false}
       >
-        {creditors.length === 0 ? (
+        {isLoading && creditors.length === 0 ? (
+          <SkeletonScreen />
+        ) : creditors.length === 0 ? (
           <View style={styles.emptyWrapper}>
             <EmptyState
               icon="target"
@@ -116,6 +133,13 @@ export default function DashboardScreen() {
           </View>
         ) : (
           <>
+            {/* Post-onboarding: open a dedicated settlement savings account.
+                Persists every launch until done, and (via the tour gate below)
+                takes priority over the first-run tour prompt. */}
+            {profile.onboardingComplete && !savingsAccountCreated && (
+              <SavingsAccountPrompt />
+            )}
+
             {profile.tier === "free" ? (
               <Pressable
                 onPress={() => router.push("/pricing")}
@@ -156,40 +180,11 @@ export default function DashboardScreen() {
               </Pressable>
             )}
 
-            {shouldPromptProgram && (
-              <Pressable
-                onPress={() => router.push("/savings-planner")}
-                style={({ pressed }) => [
-                  styles.programPrompt,
-                  {
-                    backgroundColor: colors.secondary,
-                    borderColor: colors.primary,
-                    opacity: pressed ? 0.8 : 1,
-                  },
-                ]}
-              >
-                <View style={styles.programPromptIcon}>
-                  <Feather name="target" size={20} color={colors.primary} />
-                </View>
-                <View style={styles.programPromptText}>
-                  <Text style={[styles.programPromptEyebrow, { color: colors.primary }]}>
-                    Program setup ready
-                  </Text>
-                  <Text style={[styles.programPromptTitle, { color: colors.foreground }]}>
-                    Build {programName}
-                  </Text>
-                  <Text style={[styles.programPromptDesc, { color: colors.mutedForeground }]}>
-                    See your 50% settlement estimate, savings timeline, and month-by-month tracker.
-                  </Text>
-                </View>
-                <Feather name="chevron-right" size={20} color={colors.primary} />
-              </Pressable>
-            )}
-
             {/* Outcome-first hero: settlement readiness */}
             <SettlementReadinessCard readiness={readiness} />
 
-            {/* Demoted program numbers */}
+            {/* Supporting stats for the readiness hero (full detail lives in
+                the Creditors tab, Program, and Credit Repair). */}
             <View style={styles.summaryRow}>
               <SummaryCard
                 label="Total Debt"
@@ -198,42 +193,16 @@ export default function DashboardScreen() {
                 style={{ flex: 1 }}
               />
               <SummaryCard
-                label="Settlement Target"
-                value={formatCurrency(totalTarget)}
-                icon="percent"
-                subtitle={`Save ${formatCurrency(savings)} (${savingsRatio}%)`}
-                style={{ flex: 1 }}
-              />
-            </View>
-
-            {/* Summary row */}
-            <View style={styles.summaryRow}>
-              <SummaryCard
-                label="Monthly Savings"
-                value={formatCurrency(totalSavings)}
-                icon="trending-up"
+                label="You Save"
+                value={formatCurrency(savings)}
+                icon="trending-down"
+                subtitle={`${savingsRatio}% off`}
                 style={{ flex: 1 }}
               />
               <SummaryCard
-                label="Program Length"
+                label="Timeline"
                 value={`${months} mo`}
                 icon="clock"
-                style={{ flex: 1 }}
-              />
-            </View>
-            <View style={styles.summaryRow}>
-              <SummaryCard
-                label="Creditors"
-                value={String(creditors.length)}
-                icon="users"
-                subtitle={`${creditors.filter((c) => c.status === "settled").length} settled`}
-                style={{ flex: 1 }}
-              />
-              <SummaryCard
-                label="Credit Score"
-                value={profile.creditScore > 0 ? String(profile.creditScore) : "—"}
-                icon="bar-chart-2"
-                subtitle={profile.creditScore > 0 ? "Track in Credit Repair" : "Not set"}
                 style={{ flex: 1 }}
               />
             </View>
@@ -244,7 +213,7 @@ export default function DashboardScreen() {
                   Customized Program
                 </Text>
                 <Pressable onPress={() => router.push("/savings-planner")}>
-                  <Text style={[styles.seeAll, { color: colors.primary }]}>View Tracker</Text>
+                  <Text style={[styles.seeAll, { color: colors.primary }]}>Savings Planner</Text>
                 </Pressable>
               </View>
               <Pressable
@@ -271,7 +240,7 @@ export default function DashboardScreen() {
                   </View>
                   <View style={[styles.programOverviewBadge, { backgroundColor: colors.secondary }]}>
                     <Text style={[styles.programOverviewBadgeText, { color: colors.primary }]}>
-                      50%
+                      {Math.round(profile.defaultSettlementPercentage * 100)}%
                     </Text>
                   </View>
                 </View>
@@ -305,7 +274,7 @@ export default function DashboardScreen() {
                     Next Priority
                   </Text>
                   <Pressable onPress={() => router.push("/snowball")}>
-                    <Text style={[styles.seeAll, { color: colors.primary }]}>Full Timeline</Text>
+                    <Text style={[styles.seeAll, { color: colors.primary }]}>Snowball Timeline</Text>
                   </Pressable>
                 </View>
                 <CreditorCard creditor={nextCreditor} rank={1} />
@@ -373,19 +342,12 @@ const styles = StyleSheet.create({
   },
   headerLeft: { flexDirection: "row", alignItems: "center", gap: 10 },
   headerRight: { flexDirection: "row", alignItems: "center", gap: 10 },
-  greeting: { fontSize: 11, fontFamily: "Inter_400Regular" },
-  headerTitle: { fontSize: 15, fontFamily: "Inter_700Bold" },
+  greeting: { fontSize: 13, fontFamily: "Inter_500Medium" },
+  headerTitle: { fontSize: 22, fontFamily: "Inter_700Bold" },
   profileBtn: { padding: 4 },
   scroll: { padding: 16, gap: 14 },
-  emptyWrapper: { height: 400 },
-  programPrompt: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    borderWidth: 1,
-    borderRadius: 12,
-    padding: 14,
-  },
+  scrollEmpty: { flexGrow: 1 },
+  emptyWrapper: { flex: 1 },
   tierCard: {
     flexDirection: "row",
     alignItems: "center",

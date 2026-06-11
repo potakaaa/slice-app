@@ -38,11 +38,29 @@ export default function OnboardingComplete() {
   const totalDebt = getTotalDebt(creditors);
   const totalTarget = getTotalSettlementTarget(creditors);
   const savings = totalDebt - totalTarget;
-  const months = getMaxProgramLength(creditors);
+
+  // New onboarding: step 3 captures a real monthly budget. The surplus
+  // (income − expenses) is the most honest "what I can put toward debt each
+  // month", so it now drives the timeline and readiness. Fall back to the
+  // step-1 savings figure when no budget was entered.
+  const totalExpenses = profile.monthlyExpenses.reduce(
+    (sum, e) => sum + e.amount,
+    0
+  );
+  const surplus = profile.monthlyIncome - totalExpenses;
+  const hasBudget = profile.monthlyIncome > 0;
+  const monthlyContribution =
+    hasBudget && surplus > 0 ? surplus : profile.defaultMonthlySavings;
+
+  const remainingTarget = Math.max(0, totalTarget - profile.currentSavedCash);
+  const months =
+    monthlyContribution > 0
+      ? Math.ceil(remainingTarget / monthlyContribution)
+      : getMaxProgramLength(creditors);
   const readiness = calcSettlementReadiness(
     creditors,
     profile.currentSavedCash,
-    profile.defaultMonthlySavings
+    monthlyContribution
   );
   const readinessText = readiness.isReadyNow
     ? "You may be settlement-ready now — enough saved to make your first offer."
@@ -152,14 +170,49 @@ export default function OnboardingComplete() {
             </View>
           </View>
 
+          {hasBudget && (
+            <View style={styles.budget}>
+              <View style={styles.budgetCol}>
+                <Text style={styles.budgetLabel}>Income</Text>
+                <Text style={styles.budgetValue}>
+                  {formatCurrency(profile.monthlyIncome)}
+                </Text>
+              </View>
+              <View style={styles.budgetSep} />
+              <View style={styles.budgetCol}>
+                <Text style={styles.budgetLabel}>Expenses</Text>
+                <Text style={styles.budgetValue}>
+                  −{formatCurrency(totalExpenses)}
+                </Text>
+              </View>
+              <View style={styles.budgetSep} />
+              <View style={styles.budgetCol}>
+                <Text style={styles.budgetLabel}>
+                  {surplus < 0 ? "Shortfall" : "For debt"}
+                </Text>
+                <Text style={styles.budgetValueAccent}>
+                  {surplus < 0 ? "−" : ""}
+                  {formatCurrency(Math.abs(surplus))}
+                  <Text style={styles.budgetPerMo}>/mo</Text>
+                </Text>
+              </View>
+            </View>
+          )}
+
           {months > 0 && (
             <View style={styles.timeline}>
               <Text style={styles.timelineText}>
                 Estimated program length:
               </Text>
               <Text style={styles.timelineMonths}>
-                {months} months
+                {months} {months === 1 ? "month" : "months"}
               </Text>
+              {monthlyContribution > 0 && (
+                <Text style={styles.timelineCaption}>
+                  Saving {formatCurrency(monthlyContribution)}/mo
+                  {hasBudget && surplus > 0 ? " from your budget" : ""}
+                </Text>
+              )}
             </View>
           )}
 
@@ -257,6 +310,41 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: "rgba(255,255,255,0.3)",
   },
+  budget: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(255,255,255,0.15)",
+    borderRadius: 14,
+    paddingVertical: 14,
+    paddingHorizontal: 8,
+  },
+  budgetCol: { flex: 1, alignItems: "center", gap: 3 },
+  budgetSep: {
+    width: 1,
+    alignSelf: "stretch",
+    marginVertical: 2,
+    backgroundColor: "rgba(255,255,255,0.25)",
+  },
+  budgetLabel: {
+    color: "rgba(255,255,255,0.85)",
+    fontSize: 11,
+    fontFamily: "Inter_600SemiBold",
+  },
+  budgetValue: {
+    color: "#FFFFFF",
+    fontSize: 15,
+    fontFamily: "Inter_700Bold",
+  },
+  budgetValueAccent: {
+    color: "#FFFFFF",
+    fontSize: 17,
+    fontFamily: "Inter_700Bold",
+  },
+  budgetPerMo: {
+    fontSize: 11,
+    fontFamily: "Inter_600SemiBold",
+    color: "rgba(255,255,255,0.85)",
+  },
   timeline: {
     alignItems: "center",
     backgroundColor: "rgba(255,255,255,0.15)",
@@ -274,6 +362,12 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontSize: 32,
     fontFamily: "Inter_700Bold",
+  },
+  timelineCaption: {
+    color: "rgba(255,255,255,0.85)",
+    fontSize: 13,
+    fontFamily: "Inter_600SemiBold",
+    marginTop: 2,
   },
   readiness: {
     backgroundColor: "rgba(255,255,255,0.15)",

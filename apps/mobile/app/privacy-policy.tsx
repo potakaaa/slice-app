@@ -12,7 +12,7 @@ import { useColors } from "@/hooks/useColors";
 
 const EFFECTIVE_DATE = "June 12, 2026";
 const CONTACT_EMAIL = "Marc@MarcFeinberg.com";
-const WEBSITE_URL = "https://slice.marcfeinberg.com";
+const WEBSITE_URL = "https://slicemydebt.com";
 const LEGAL_BUSINESS_NAME = "Coach Marc LLC";
 const MAILING_ADDRESS = "2007 Cove Ln.\nNorth Palm Beach, FL 33408";
 

@@ -9,9 +9,12 @@ const DEFAULT_PROFILE: UserProfile = {
   email: "",
   creditScore: 0,
   primaryGoal: "settle",
+  estimatedTotalDebt: 0,
   defaultSettlementPercentage: 0.5,
   defaultMonthlySavings: 500,
   currentSavedCash: 0,
+  monthlyIncome: 0,
+  monthlyExpenses: [],
   tier: "free",
   onboardingComplete: false,
 };
@@ -30,6 +33,15 @@ interface AppStore {
    * `completed`/`skipped` => never auto-offered again (still replayable).
    */
   tutorialStatus: TutorialStatus;
+
+  /**
+   * Post-onboarding "open a dedicated settlement savings account" task. Stays
+   * `false` until the user confirms they've opened the account, so the dashboard
+   * prompt re-appears every launch and the first-run tour is held back until
+   * this is done. `false` is the correct default for existing installs too —
+   * everyone should be nudged to open the account — so no migration is needed.
+   */
+  savingsAccountCreated: boolean;
 
   // Delight & review state (Pillar 3: Emotional Connection)
   /** Weighted goodwill score — bigger wins add more than routine ones. */
@@ -54,6 +66,10 @@ interface AppStore {
   markOnboardingReady: () => void;
   setAwaitingEmailConfirmation: (awaiting: boolean) => void;
   clearDraft: () => void;
+
+  /** Mark the dedicated settlement savings account as opened (dismisses the
+   *  dashboard prompt and unblocks the first-run tour). */
+  markSavingsAccountCreated: () => void;
 
   /** Set the first-run tutorial status (e.g. `completed` / `skipped`). */
   setTutorialStatus: (status: TutorialStatus) => void;
@@ -87,6 +103,7 @@ export const useAppStore = create<AppStore>()(
       profile: DEFAULT_PROFILE,
       creditors: [],
       tutorialStatus: "pending",
+      savingsAccountCreated: false,
       happyMomentCount: 0,
       reviewPromptedVersion: null,
       celebratedMilestones: [],
@@ -117,6 +134,8 @@ export const useAppStore = create<AppStore>()(
           onboardingReadyForAuth: false,
           awaitingEmailConfirmation: false,
         }),
+
+      markSavingsAccountCreated: () => set({ savingsAccountCreated: true }),
 
       setTutorialStatus: (tutorialStatus) =>
         set((state) => ({
@@ -155,13 +174,28 @@ export const useAppStore = create<AppStore>()(
     {
       name: "slice-onboarding-draft",
       storage: createJSONStorage(() => AsyncStorage),
-      version: 1,
+      version: 3,
       // Existing installs (persisted before the tutorial shipped) have no
       // `tutorialStatus`. Default them to `skipped` so only genuinely-new users
       // — who get `pending` set at onboarding completion — are ever offered it.
       migrate: (persisted: any, version) => {
         if (version < 1 && persisted && persisted.tutorialStatus === undefined) {
           persisted.tutorialStatus = "skipped";
+        }
+        // v3: onboarding profile gained `estimatedTotalDebt` plus the monthly
+        // budget fields (`monthlyIncome`, `monthlyExpenses`). Gated on `< 3`
+        // (not `< 2`) so state already bumped to v2 mid-development still gets
+        // the budget fields backfilled. Each check is idempotent.
+        if (version < 3 && persisted?.profile) {
+          if (persisted.profile.estimatedTotalDebt === undefined) {
+            persisted.profile.estimatedTotalDebt = 0;
+          }
+          if (persisted.profile.monthlyIncome === undefined) {
+            persisted.profile.monthlyIncome = 0;
+          }
+          if (persisted.profile.monthlyExpenses === undefined) {
+            persisted.profile.monthlyExpenses = [];
+          }
         }
         return persisted;
       },
@@ -172,6 +206,7 @@ export const useAppStore = create<AppStore>()(
         profile: state.profile,
         creditors: state.creditors,
         tutorialStatus: state.tutorialStatus,
+        savingsAccountCreated: state.savingsAccountCreated,
         happyMomentCount: state.happyMomentCount,
         reviewPromptedVersion: state.reviewPromptedVersion,
         celebratedMilestones: state.celebratedMilestones,

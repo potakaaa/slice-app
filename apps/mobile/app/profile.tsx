@@ -16,6 +16,7 @@ import {
 
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
+import { SegmentedPercent } from "@/components/SegmentedPercent";
 import { TierBadge } from "@/components/TierBadge";
 import { useColors } from "@/hooks/useColors";
 import { useAuth } from "@/lib/auth";
@@ -37,6 +38,11 @@ const GOAL_LABELS: Record<PrimaryGoal, string> = {
   prepare: "Prepare for Calls",
   payoff: "Build a Payoff Plan",
 };
+
+// The single program-wide settlement target. Editing it here recomputes every
+// creditor's target and timeline (see useCreditors), so it is no longer set per
+// creditor.
+const SETTLEMENT_OPTIONS = [0.3, 0.4, 0.5, 0.6, 0.7];
 
 export default function ProfileScreen() {
   const colors = useColors();
@@ -204,25 +210,39 @@ export default function ProfileScreen() {
             <Text style={[styles.sectionTitle, { color: colors.foreground }]}>
               Program Settings
             </Text>
-            <View style={styles.infoRow}>
+            <View style={[styles.infoRow, { borderBottomColor: colors.border }]}>
               <Text style={[styles.infoLabel, { color: colors.mutedForeground }]}>Primary Goal</Text>
               <Text style={[styles.infoValue, { color: colors.foreground }]}>
                 {GOAL_LABELS[profile.primaryGoal]}
               </Text>
             </View>
-            <View style={styles.infoRow}>
-              <Text style={[styles.infoLabel, { color: colors.mutedForeground }]}>Default Settlement %</Text>
-              <Text style={[styles.infoValue, { color: colors.foreground }]}>
-                {Math.round(profile.defaultSettlementPercentage * 100)}%
-              </Text>
+            <View style={[styles.settlementBlock, { borderBottomColor: colors.border }]}>
+              <View style={styles.settlementHeader}>
+                <Text style={[styles.infoLabel, { color: colors.mutedForeground }]}>Settlement Target</Text>
+                <Text style={[styles.settlementHint, { color: colors.mutedForeground }]}>
+                  Applies to all creditors
+                </Text>
+              </View>
+              <SegmentedPercent
+                options={SETTLEMENT_OPTIONS}
+                value={profile.defaultSettlementPercentage}
+                onChange={(pct) => updateProfile.mutate({ defaultSettlementPercentage: pct })}
+                disabled={updateProfile.isPending}
+                fill
+              />
             </View>
-            <View style={styles.infoRow}>
+            <View style={[styles.infoRow, { borderBottomColor: colors.border }]}>
               <Text style={[styles.infoLabel, { color: colors.mutedForeground }]}>Monthly Savings</Text>
               <Text style={[styles.infoValue, { color: colors.foreground }]}>
                 {formatCurrency(profile.defaultMonthlySavings)}/mo
               </Text>
             </View>
-            <Pressable style={styles.infoRow} onPress={() => router.push("/add-to-fund" as any)}>
+            <Pressable
+              style={[styles.infoRow, { borderBottomColor: colors.border }]}
+              onPress={() => router.push("/add-to-fund" as any)}
+              accessibilityRole="button"
+              accessibilityLabel="Add to settlement fund"
+            >
               <Text style={[styles.infoLabel, { color: colors.mutedForeground }]}>Settlement Fund</Text>
               <View style={styles.fundValue}>
                 <Text style={[styles.infoValue, { color: colors.foreground }]}>
@@ -231,7 +251,7 @@ export default function ProfileScreen() {
                 <Text style={[styles.fundAdd, { color: colors.primary }]}>Add</Text>
               </View>
             </Pressable>
-            <View style={styles.infoRow}>
+            <View style={[styles.infoRow, { borderBottomColor: colors.border }]}>
               <Text style={[styles.infoLabel, { color: colors.mutedForeground }]}>Credit Score</Text>
               <Text style={[styles.infoValue, { color: colors.foreground }]}>
                 {profile.creditScore > 0 ? profile.creditScore : "Not set"}
@@ -347,10 +367,16 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: "#E8E8E8",
   },
   infoLabel: { fontSize: 13, fontFamily: "Inter_400Regular" },
   infoValue: { fontSize: 13, fontFamily: "Inter_600SemiBold" },
+  settlementBlock: {
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    gap: 10,
+  },
+  settlementHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  settlementHint: { fontSize: 11, fontFamily: "Inter_400Regular" },
   fundValue: { flexDirection: "row", alignItems: "center", gap: 10 },
   fundAdd: { fontSize: 13, fontFamily: "Inter_700Bold" },
   tierRow: { flexDirection: "row", alignItems: "center", gap: 12 },

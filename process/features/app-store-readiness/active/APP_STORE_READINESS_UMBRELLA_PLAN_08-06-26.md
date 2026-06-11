@@ -18,7 +18,7 @@ error handling review, and user confirmation. Code-only completion is not verifi
 ## Acceptance Criteria
 
 - Preview and production iOS builds resolve through EAS managed profiles.
-- Production Expo config uses `https://slice.marcfeinberg.com` or `EXPO_PUBLIC_APP_ORIGIN`, not Replit.
+- Production Expo config uses `https://slicemydebt.com` or `EXPO_PUBLIC_APP_ORIGIN`, not Replit.
 - Production/preview builds do not include the `expo-dev-client` plugin.
 - Unused location and image-picker packages are absent from mobile dependencies and lockfile.
 - Privacy Policy is reachable from Profile, More, and Legal screens.

@@ -19,7 +19,6 @@ import {
   calcProgramLength,
   calcSettledAmount,
   formatCurrency,
-  formatPct,
   getTotalDebt,
   getTotalSettlementTarget,
   getSortedBySnowball,
@@ -27,7 +26,6 @@ import {
 import { router } from "expo-router";
 import { Button } from "@/components/Button";
 
-const SETTLEMENT_OPTIONS = [0.3, 0.4, 0.5, 0.6, 0.7];
 
 export default function ProgramScreen() {
   const colors = useColors();
@@ -114,44 +112,6 @@ export default function ProgramScreen() {
                   </Text>
                 </View>
 
-                {/* Settlement % selector */}
-                <View style={styles.pctSection}>
-                  <Text style={[styles.pctLabel, { color: colors.mutedForeground }]}>
-                    Settlement target:
-                  </Text>
-                  <View style={styles.pctRow}>
-                    {SETTLEMENT_OPTIONS.map((pct) => (
-                      <Pressable
-                        key={pct}
-                        onPress={() => updateCreditor.mutate({ id: creditor.id, updates: { settlementPercentage: pct } })}
-                        style={[
-                          styles.pctBtn,
-                          {
-                            backgroundColor:
-                              creditor.settlementPercentage === pct
-                                ? colors.primary
-                                : colors.muted,
-                          },
-                        ]}
-                      >
-                        <Text
-                          style={[
-                            styles.pctText,
-                            {
-                              color:
-                                creditor.settlementPercentage === pct
-                                  ? "#FFFFFF"
-                                  : colors.mutedForeground,
-                            },
-                          ]}
-                        >
-                          {formatPct(pct)}
-                        </Text>
-                      </Pressable>
-                    ))}
-                  </View>
-                </View>
-
                 {/* Monthly savings quick edit */}
                 <View style={styles.savingsRow}>
                   <Text style={[styles.savingsLabel, { color: colors.mutedForeground }]}>
@@ -166,6 +126,8 @@ export default function ProgramScreen() {
                         })
                       }
                       style={[styles.adjustBtn, { backgroundColor: colors.muted }]}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Decrease monthly savings for ${creditor.name} by 50 dollars`}
                     >
                       <Feather name="minus" size={14} color={colors.foreground} />
                     </Pressable>
@@ -177,6 +139,8 @@ export default function ProgramScreen() {
                         })
                       }
                       style={[styles.adjustBtn, { backgroundColor: colors.muted }]}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Increase monthly savings for ${creditor.name} by 50 dollars`}
                     >
                       <Feather name="plus" size={14} color={colors.foreground} />
                     </Pressable>
@@ -187,7 +151,7 @@ export default function ProgramScreen() {
           })}
 
           <Button
-            label="View Snowball Timeline"
+            label="Snowball Timeline"
             variant="secondary"
             onPress={() => router.push("/snowball")}
             fullWidth
@@ -227,16 +191,6 @@ const styles = StyleSheet.create({
   creditorRow: { flexDirection: "row", alignItems: "center", gap: 8 },
   creditorName: { fontSize: 13, fontFamily: "Inter_600SemiBold" },
   creditorStat: { flex: 1, fontSize: 12, fontFamily: "Inter_500Medium", textAlign: "center" },
-  pctSection: { gap: 6 },
-  pctLabel: { fontSize: 11, fontFamily: "Inter_400Regular" },
-  pctRow: { flexDirection: "row", gap: 6 },
-  pctBtn: {
-    flex: 1,
-    paddingVertical: 7,
-    borderRadius: 6,
-    alignItems: "center",
-  },
-  pctText: { fontSize: 11, fontFamily: "Inter_700Bold" },
   savingsRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   savingsLabel: { fontSize: 12, fontFamily: "Inter_400Regular" },
   savingsBtns: { flexDirection: "row", gap: 8 },

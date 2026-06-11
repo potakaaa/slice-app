@@ -47,7 +47,6 @@ function formatShortDate(iso: string): string {
   return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
 
-const SETTLEMENT_OPTIONS = [0.3, 0.4, 0.5, 0.6, 0.7];
 const STATUS_OPTIONS: { value: CreditorStatus; label: string }[] = [
   { value: "active", label: "Active" },
   { value: "negotiating", label: "Negotiating" },
@@ -237,37 +236,16 @@ export default function CreditorDetailScreen() {
             </Text>
           </View>
 
-          {/* Settlement % */}
-          <Text style={[styles.sectionLabel, { color: colors.mutedForeground, marginTop: 12 }]}>
-            SETTLEMENT TARGET
-          </Text>
-          <View style={styles.pctRow}>
-            {SETTLEMENT_OPTIONS.map((pct) => (
-              <Pressable
-                key={pct}
-                onPress={() => updateCreditor.mutate({ id: creditor.id, updates: { settlementPercentage: pct } })}
-                style={[
-                  styles.pctBtn,
-                  {
-                    backgroundColor:
-                      creditor.settlementPercentage === pct ? colors.primary : colors.muted,
-                  },
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.pctText,
-                    {
-                      color:
-                        creditor.settlementPercentage === pct ? "#FFFFFF" : colors.foreground,
-                    },
-                  ]}
-                >
-                  {formatPct(pct)}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
+          {/* Settlement target is a program-wide setting, not per creditor. */}
+          <Pressable
+            onPress={() => router.push("/profile")}
+            style={[styles.targetHintRow, { borderTopColor: colors.border }]}
+          >
+            <Text style={[styles.targetHintText, { color: colors.mutedForeground }]}>
+              Settlement target {formatPct(creditor.settlementPercentage)} applies to all creditors
+            </Text>
+            <Text style={[styles.targetHintLink, { color: colors.primary }]}>Change in Settings</Text>
+          </Pressable>
         </Card>
 
         {/* AI hint */}
@@ -522,14 +500,17 @@ const styles = StyleSheet.create({
   programValue: { fontSize: 16, fontFamily: "Inter_700Bold" },
   targetDate: { flexDirection: "row", gap: 6, alignItems: "center" },
   targetDateText: { fontSize: 12, fontFamily: "Inter_400Regular" },
-  pctRow: { flexDirection: "row", gap: 8 },
-  pctBtn: {
-    flex: 1,
-    paddingVertical: 9,
-    borderRadius: 8,
+  targetHintRow: {
+    flexDirection: "row",
     alignItems: "center",
+    justifyContent: "space-between",
+    gap: 8,
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: StyleSheet.hairlineWidth,
   },
-  pctText: { fontSize: 12, fontFamily: "Inter_700Bold" },
+  targetHintText: { fontSize: 12, fontFamily: "Inter_400Regular", flex: 1 },
+  targetHintLink: { fontSize: 12, fontFamily: "Inter_600SemiBold" },
   aiCard: { borderWidth: 1.5, gap: 8 },
   aiHeader: { flexDirection: "row", alignItems: "center", gap: 8 },
   aiTitle: { fontSize: 14, fontFamily: "Inter_700Bold" },

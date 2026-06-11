@@ -54,7 +54,9 @@ export type MoneyInputValue = {
 };
 
 export function parseMoneyInput(input: string): number {
-  const digits = input.replace(/\D/g, "");
+  // Coerce defensively: persisted/migrated state can hand us undefined/null or a
+  // number, and a hard `.replace` crash here takes down the whole tree.
+  const digits = String(input ?? "").replace(/\D/g, "");
   return digits ? Number(digits) : 0;
 }
 
@@ -62,6 +64,18 @@ export function formatMoneyInput(input: string | number): string {
   const value =
     typeof input === "number" ? Math.max(0, Math.trunc(input)) : parseMoneyInput(input);
   return value > 0 ? value.toLocaleString("en-US") : "";
+}
+
+/**
+ * Progressive US phone mask: formats digits as the user types into
+ * `123-456-7890`. Non-digits are stripped and input is capped at 10 digits so
+ * the field never overflows the mask.
+ */
+export function formatPhoneInput(input: string): string {
+  const digits = String(input ?? "").replace(/\D/g, "").slice(0, 10);
+  if (digits.length <= 3) return digits;
+  if (digits.length <= 6) return `${digits.slice(0, 3)}-${digits.slice(3)}`;
+  return `${digits.slice(0, 3)}-${digits.slice(3, 6)}-${digits.slice(6)}`;
 }
 
 export function normalizeMoneyInput(input: string): MoneyInputValue {
@@ -103,8 +117,32 @@ export function getMaxProgramLength(creditors: Creditor[]): number {
   );
 }
 
+/**
+ * Months to fund this creditor's settlement target at its monthly savings.
+ * No monthly savings means the goal is never reached on its own, so it
+ * sorts last (Infinity) rather than masquerading as an instant 0-month win.
+ */
+function monthsToSettle(c: Creditor): number {
+  if (c.monthlySavings <= 0) return Infinity;
+  return calcProgramLength(calcSettledAmount(c.balance, c.settlementPercentage), c.monthlySavings);
+}
+
+/**
+ * Ordering for every creditor list (snowball timeline, creditors tab, program,
+ * dashboard priority). Soonest-to-settle first so the user always sees the
+ * nearest win at the top; balance breaks ties so equal-timeline creditors fall
+ * back to the classic smallest-first snowball.
+ */
 export function getSortedBySnowball(creditors: Creditor[]): Creditor[] {
-  return [...creditors].sort((a, b) => a.balance - b.balance);
+  return [...creditors].sort((a, b) => {
+    const ma = monthsToSettle(a);
+    const mb = monthsToSettle(b);
+    // Guard the subtraction: two un-fundable creditors are both Infinity, and
+    // Infinity - Infinity is NaN, which corrupts the sort. Only diff when they
+    // actually differ; equal timelines fall through to the balance tiebreak.
+    if (ma !== mb) return ma - mb;
+    return a.balance - b.balance;
+  });
 }
 
 export function getAISuggestedOffer(balance: number): number {
@@ -182,6 +220,21 @@ export function calcReadyDate(days: number): string {
   const date = new Date();
   date.setDate(date.getDate() + Math.max(0, days));
   return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+
+/**
+ * Human-friendly settlement timeline expressed in months (rolling up to years).
+ * Settlement funds take months-to-years to build, so a raw day count ("547 days")
+ * is hard to grasp — months read as a plan, not a countdown.
+ * e.g. "under a month", "5 months", "1 yr 2 mo".
+ */
+export function formatReadyTimeline(days: number): string {
+  const totalMonths = Math.round(Math.max(0, days) / DAYS_PER_MONTH);
+  if (totalMonths < 1) return "under a month";
+  if (totalMonths < 12) return `${totalMonths} month${totalMonths === 1 ? "" : "s"}`;
+  const years = Math.floor(totalMonths / 12);
+  const months = totalMonths % 12;
+  return months === 0 ? `${years} yr` : `${years} yr ${months} mo`;
 }
 
 export function calcSettlementReadiness(

@@ -13,16 +13,17 @@ import {
 
 import { Button } from "@/components/Button";
 import { SliceLogo } from "@/components/SliceLogo";
+import { useAppStore } from "@/store/useAppStore";
 
 const FEATURES: { icon: keyof typeof Feather.glyphMap; text: string }[] = [
   { icon: "bar-chart-2", text: "Build a customized debt program" },
   { icon: "percent", text: "Calculate settlement targets" },
-  { icon: "trending-up", text: "Plan your monthly savings" },
-  { icon: "phone", text: "Get AI negotiation guidance" },
+  { icon: "trending-up", text: "Create a monthly budget" },
 ];
 
 export default function OnboardingWelcome() {
   const topPad = Platform.OS === "web" ? 67 : 0;
+  const markOnboardingSeen = useAppStore((s) => s.markOnboardingSeen);
 
   return (
     <View style={styles.container}>
@@ -46,7 +47,7 @@ export default function OnboardingWelcome() {
                 <View style={styles.featureIcon}>
                   <Feather name={item.icon} size={16} color="#FFFFFF" />
                 </View>
-                <Text style={styles.featureText} numberOfLines={1}>{item.text}</Text>
+                <Text style={styles.featureText}>{item.text}</Text>
               </View>
             ))}
           </View>
@@ -54,7 +55,10 @@ export default function OnboardingWelcome() {
           <View style={[styles.bottom, { paddingBottom: Platform.OS === "web" ? 34 : 0 }]}>
             <Button
               label="Get Started — It's Free"
-              onPress={() => router.push("/onboarding/step1")}
+              onPress={() => {
+                markOnboardingSeen();
+                router.push("/auth?mode=signup");
+              }}
               style={styles.cta}
               textColor="#FF5A00"
               fullWidth
@@ -63,7 +67,10 @@ export default function OnboardingWelcome() {
               No credit card required. Your program is stored securely in your SLICE account.
             </Text>
             <Pressable
-              onPress={() => router.push("/auth")}
+              onPress={() => {
+                markOnboardingSeen();
+                router.push("/auth");
+              }}
               hitSlop={8}
               style={styles.loginRow}
             >

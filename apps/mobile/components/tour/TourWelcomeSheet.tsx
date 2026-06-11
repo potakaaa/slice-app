@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Button } from "@/components/Button";
 import { useColors } from "@/hooks/useColors";
 import { useAppStore } from "@/store/useAppStore";
+import { useCelebrationStore } from "@/store/useCelebrationStore";
 
 import { useTour } from "./TourProvider";
 
@@ -16,11 +17,18 @@ import { useTour } from "./TourProvider";
  */
 export function TourWelcomeSheet() {
   const tutorialStatus = useAppStore((s) => s.tutorialStatus);
+  const savingsAccountCreated = useAppStore((s) => s.savingsAccountCreated);
+  const celebrationActive = useCelebrationStore((s) => s.active !== null);
   const { start, skip, reduceMotion } = useTour();
   const colors = useColors();
   const insets = useSafeAreaInsets();
 
-  const visible = tutorialStatus === "pending";
+  // Hold the tour back until the post-onboarding savings-account step is done —
+  // that prompt takes priority on the dashboard (see SavingsAccountPrompt). Also
+  // wait out any active celebration so the tour modal never buries the confetti
+  // fired when the user checks the savings step off.
+  const visible =
+    tutorialStatus === "pending" && savingsAccountCreated && !celebrationActive;
 
   return (
     <Modal

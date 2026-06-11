@@ -6,6 +6,7 @@ import { useColors } from "@/hooks/useColors";
 import {
   formatCurrency,
   formatPct,
+  formatReadyTimeline,
   getNextBestMove,
   type SettlementReadiness,
 } from "@/utils/calculations";
@@ -20,7 +21,7 @@ function headlineFor(r: SettlementReadiness): string {
       return "Finish your plan";
     default:
       return r.daysUntilReady != null
-        ? `Settlement-ready in ${r.daysUntilReady} days`
+        ? `Settlement-ready in ${formatReadyTimeline(r.daysUntilReady)}`
         : "Building your plan";
   }
 }
@@ -67,7 +68,12 @@ export function SettlementReadinessCard({ readiness }: Props) {
           {creditor.name} — {formatCurrency(readiness.firstOfferTarget)} (
           {formatPct(creditor.settlementPercentage)} of {formatCurrency(creditor.balance)})
         </Text>
-        <View style={styles.progressTrack}>
+        <View
+          style={styles.progressTrack}
+          accessibilityRole="progressbar"
+          accessibilityLabel="Settlement fund progress"
+          accessibilityValue={{ min: 0, max: 100, now: Math.round(readiness.progress * 100) }}
+        >
           <View style={[styles.progressFill, { width: `${readiness.progress * 100}%` }]} />
         </View>
         <View style={styles.progressRow}>
@@ -75,7 +81,12 @@ export function SettlementReadinessCard({ readiness }: Props) {
             Saved {formatCurrency(readiness.currentSaved)} of{" "}
             {formatCurrency(readiness.firstOfferTarget)}
           </Text>
-          <Pressable onPress={() => router.push("/add-to-fund" as any)} hitSlop={8}>
+          <Pressable
+            onPress={() => router.push("/add-to-fund" as any)}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel="Add to settlement fund"
+          >
             <Text style={styles.addToFund}>+ Add to fund</Text>
           </Pressable>
         </View>

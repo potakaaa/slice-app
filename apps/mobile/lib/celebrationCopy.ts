@@ -19,9 +19,12 @@ export type CelebrationTier = "micro" | "full" | "hero";
 export type CelebrationVoice = "pride" | "hero" | "encourage" | "welcome";
 
 export type MilestoneKey =
+  | "m1_registered"
   | "m2_fund_setup"
   | "m3_first_creditor"
   | "m4_goal"
+  | "m4c_budget"
+  | "savings_account_opened"
   | "m5_first_plan"
   | "m9_what_if"
   | "m13_logged_call"
@@ -55,6 +58,22 @@ interface MilestoneDef {
 const SUPPORT_LINE = "We're here to support you every step of the way.";
 
 const MILESTONES: Record<MilestoneKey, MilestoneDef> = {
+  // --- Registration (welcome) -----------------------------------------------
+  // The very first moment: account created. Full-tier confetti so it feels like
+  // an arrival, but voice is `welcome` (not pride) on purpose — a brand-new user
+  // hasn't earned a "proud of you" yet, and welcome voice also skips the App
+  // Store review ask, which would be grabby this early in the journey.
+  m1_registered: {
+    tier: "full",
+    voice: "welcome",
+    pool: [
+      {
+        title: "You took the first step!",
+        message: "You're now registered. Welcome to SLICE — we're so glad you're here.",
+      },
+    ],
+  },
+
   // --- T1 micro (encourage) -------------------------------------------------
   m2_fund_setup: {
     tier: "micro",
@@ -97,6 +116,31 @@ const MILESTONES: Record<MilestoneKey, MilestoneDef> = {
       { title: "First creditor added", message: "Honestly, that's the hardest part. We've got you from here." },
       { title: "You took the first step", message: "Naming what you owe takes courage. Proud of you." },
       { title: "Here we go", message: "One creditor at a time — and you just started." },
+    ],
+  },
+  m4c_budget: {
+    tier: "full",
+    voice: "pride",
+    pool: [
+      { title: "You did it again!", message: "Your monthly budget is mapped out — that's real clarity most people never get to." },
+      { title: "Budget complete", message: "Income, expenses, and what's left for your goal — all in one place. Way to go." },
+    ],
+  },
+  // Full-tier confetti, but `encourage` voice on purpose: opening a bank account
+  // is a real step worth celebrating, yet it's not the moment for a "so proud of
+  // you" or an App Store review ask (which pride/hero voices trigger downstream).
+  savings_account_opened: {
+    tier: "full",
+    voice: "encourage",
+    pool: [
+      {
+        title: "Settlement fund, ready!",
+        message: "Your dedicated savings account is open — that's where every dollar toward freedom now lives.",
+      },
+      {
+        title: "Account opened!",
+        message: "Now you've got a home for your settlement savings. Time to watch it grow.",
+      },
     ],
   },
   m5_first_plan: {
