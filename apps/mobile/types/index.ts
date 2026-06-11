@@ -2,6 +2,8 @@ export type SubscriptionTier = "free" | "silver" | "gold" | "platinum";
 export type PrimaryGoal = "settle" | "repair" | "prepare" | "payoff";
 export type CreditorStatus = "active" | "negotiating" | "settled" | "closed";
 export type ScriptTone = "calm" | "firm" | "hardship" | "direct";
+/** First-run guided tutorial lifecycle. `pending` = eligible to be offered. */
+export type TutorialStatus = "pending" | "in_progress" | "completed" | "skipped";
 
 export interface UserProfile {
   name: string;
@@ -14,6 +16,9 @@ export interface UserProfile {
   currentSavedCash: number;
   tier: SubscriptionTier;
   onboardingComplete: boolean;
+  /** ISO timestamp the user finished the optional first-run tour (local-first;
+   *  best-effort Supabase sync is a deferred follow-up). */
+  tutorialCompletedAt?: string | null;
 }
 
 export interface Creditor {

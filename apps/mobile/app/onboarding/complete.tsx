@@ -31,6 +31,7 @@ export default function OnboardingComplete() {
   const profile = useAppStore((s) => s.profile);
   const onboardingReadyForAuth = useAppStore((s) => s.onboardingReadyForAuth);
   const clearDraft = useAppStore((s) => s.clearDraft);
+  const setTutorialStatus = useAppStore((s) => s.setTutorialStatus);
   const createCreditor = useCreateCreditor();
   const upsertProfile = useUpsertProfile();
 
@@ -88,6 +89,9 @@ export default function OnboardingComplete() {
           priority: index + 1,
         });
       }
+      // Fresh sign-up: make this user eligible for the optional first-run tour
+      // (the dashboard shows the opt-in welcome sheet while status is "pending").
+      setTutorialStatus("pending");
       // Navigate before clearing the draft: clearing flips onboardingReadyForAuth
       // and empties creditors, which the redirect guard above would otherwise act
       // on and bounce this screen back to /onboarding mid-success.

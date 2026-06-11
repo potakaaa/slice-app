@@ -4,6 +4,7 @@ import { router } from "expo-router";
 import React from "react";
 import {
   Platform,
+  Pressable,
   SafeAreaView,
   StyleSheet,
   Text,
@@ -61,6 +62,15 @@ export default function OnboardingWelcome() {
             <Text style={styles.disclaimer}>
               No credit card required. Your program is stored securely in your SLICE account.
             </Text>
+            <Pressable
+              onPress={() => router.push("/auth")}
+              hitSlop={8}
+              style={styles.loginRow}
+            >
+              <Text style={styles.loginText}>
+                Already have an account? <Text style={styles.loginLink}>Log in</Text>
+              </Text>
+            </Pressable>
           </View>
         </View>
       </SafeAreaView>
@@ -125,5 +135,17 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontSize: 12,
     fontFamily: "Inter_600SemiBold",
+  },
+  loginRow: { alignItems: "center", paddingTop: 2 },
+  loginText: {
+    textAlign: "center",
+    color: "rgba(255,255,255,0.9)",
+    fontSize: 14,
+    fontFamily: "Inter_500Medium",
+  },
+  loginLink: {
+    color: "#FFFFFF",
+    fontFamily: "Inter_700Bold",
+    textDecorationLine: "underline",
   },
 });

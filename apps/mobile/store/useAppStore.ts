@@ -2,7 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 
-import type { Creditor, UserProfile } from "@/types";
+import type { Creditor, TutorialStatus, UserProfile } from "@/types";
 
 const DEFAULT_PROFILE: UserProfile = {
   name: "",
@@ -23,6 +23,13 @@ interface AppStore {
   awaitingEmailConfirmation: boolean;
   profile: UserProfile;
   creditors: Creditor[];
+
+  /**
+   * First-run optional tutorial status. `pending` => eligible to be offered the
+   * opt-in welcome sheet; `in_progress` => the guided tour is running;
+   * `completed`/`skipped` => never auto-offered again (still replayable).
+   */
+  tutorialStatus: TutorialStatus;
 
   // Delight & review state (Pillar 3: Emotional Connection)
   /** Weighted goodwill score — bigger wins add more than routine ones. */
@@ -47,6 +54,11 @@ interface AppStore {
   markOnboardingReady: () => void;
   setAwaitingEmailConfirmation: (awaiting: boolean) => void;
   clearDraft: () => void;
+
+  /** Set the first-run tutorial status (e.g. `completed` / `skipped`). */
+  setTutorialStatus: (status: TutorialStatus) => void;
+  /** Begin the guided tour — used by the opt-in sheet and the "Replay" entry. */
+  startTour: () => void;
 
   /**
    * Record an accomplishment that builds goodwill toward a review ask.
@@ -74,6 +86,7 @@ export const useAppStore = create<AppStore>()(
       awaitingEmailConfirmation: false,
       profile: DEFAULT_PROFILE,
       creditors: [],
+      tutorialStatus: "pending",
       happyMomentCount: 0,
       reviewPromptedVersion: null,
       celebratedMilestones: [],
@@ -105,6 +118,16 @@ export const useAppStore = create<AppStore>()(
           awaitingEmailConfirmation: false,
         }),
 
+      setTutorialStatus: (tutorialStatus) =>
+        set((state) => ({
+          tutorialStatus,
+          profile:
+            tutorialStatus === "completed"
+              ? { ...state.profile, tutorialCompletedAt: new Date().toISOString() }
+              : state.profile,
+        })),
+      startTour: () => set({ tutorialStatus: "in_progress" }),
+
       recordHappyMoment: (weight = 1) =>
         set((state) => ({
           happyMomentCount: state.happyMomentCount + Math.max(1, weight),
@@ -132,12 +155,23 @@ export const useAppStore = create<AppStore>()(
     {
       name: "slice-onboarding-draft",
       storage: createJSONStorage(() => AsyncStorage),
+      version: 1,
+      // Existing installs (persisted before the tutorial shipped) have no
+      // `tutorialStatus`. Default them to `skipped` so only genuinely-new users
+      // — who get `pending` set at onboarding completion — are ever offered it.
+      migrate: (persisted: any, version) => {
+        if (version < 1 && persisted && persisted.tutorialStatus === undefined) {
+          persisted.tutorialStatus = "skipped";
+        }
+        return persisted;
+      },
       partialize: (state) => ({
         hasSeenOnboarding: state.hasSeenOnboarding,
         onboardingReadyForAuth: state.onboardingReadyForAuth,
         awaitingEmailConfirmation: state.awaitingEmailConfirmation,
         profile: state.profile,
         creditors: state.creditors,
+        tutorialStatus: state.tutorialStatus,
         happyMomentCount: state.happyMomentCount,
         reviewPromptedVersion: state.reviewPromptedVersion,
         celebratedMilestones: state.celebratedMilestones,

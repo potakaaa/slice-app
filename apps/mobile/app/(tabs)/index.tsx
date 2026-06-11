@@ -18,6 +18,7 @@ import { CreditorCard } from "@/components/CreditorCard";
 import { EmptyState } from "@/components/EmptyState";
 import { SettlementReadinessCard } from "@/components/SettlementReadinessCard";
 import { TierBadge } from "@/components/TierBadge";
+import { TourWelcomeSheet } from "@/components/tour";
 import { useColors } from "@/hooks/useColors";
 import { celebrate } from "@/lib/celebrate";
 import { useAggregateProgram, useCreditors, useProfile } from "@/lib/sliceData";
@@ -353,6 +354,9 @@ export default function DashboardScreen() {
           </>
         )}
       </ScrollView>
+
+      {/* First-run opt-in tour prompt (renders only while status is "pending"). */}
+      <TourWelcomeSheet />
     </View>
   );
 }
