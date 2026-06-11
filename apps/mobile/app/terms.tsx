@@ -13,8 +13,8 @@ import { useColors } from "@/hooks/useColors";
 const EFFECTIVE_DATE = "June 12, 2026";
 const GOVERNING_STATE = "Florida";
 const CONTACT_EMAIL = "Marc@MarcFeinberg.com";
-const WEBSITE_URL = "https://slice.marcfeinberg.com";
-const PRIVACY_POLICY_URL = "https://slice.marcfeinberg.com/privacy-policy";
+const WEBSITE_URL = "https://slicemydebt.com";
+const PRIVACY_POLICY_URL = "https://slicemydebt.com/privacy-policy";
 const LEGAL_BUSINESS_NAME = "Coach Marc LLC";
 const MAILING_ADDRESS = "2007 Cove Ln.\nNorth Palm Beach, FL 33408";
 

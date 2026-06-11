@@ -19,10 +19,9 @@ import { useCreateCreditor, useCreditors, useProfile } from "@/lib/sliceData";
 import {
   formatCurrency,
   formatMoneyInput,
+  formatPhoneInput,
   parseMoneyInput,
 } from "@/utils/calculations";
-
-const SETTLEMENT_OPTIONS = [0.3, 0.4, 0.5, 0.6, 0.7];
 
 export default function AddCreditorScreen() {
   const colors = useColors();
@@ -33,7 +32,9 @@ export default function AddCreditorScreen() {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [balance, setBalance] = useState("");
-  const [settlementPct, setSettlementPct] = useState(profile.defaultSettlementPercentage);
+  // Settlement target is a single program-wide setting (Settings > Program),
+  // applied to every creditor — not chosen per creditor.
+  const settlementPct = profile.defaultSettlementPercentage;
   const [monthlySavings, setMonthlySavings] = useState(
     formatMoneyInput(profile.defaultMonthlySavings)
   );
@@ -93,7 +94,7 @@ export default function AddCreditorScreen() {
               </Text>
               <TextInput
                 value={phone}
-                onChangeText={setPhone}
+                onChangeText={(value) => setPhone(formatPhoneInput(value))}
                 placeholder="800-000-0000"
                 placeholderTextColor={colors.mutedForeground}
                 style={[styles.input, { borderColor: colors.border, color: colors.foreground, backgroundColor: colors.card }]}
@@ -120,39 +121,20 @@ export default function AddCreditorScreen() {
 
             <View style={styles.field}>
               <Text style={[styles.label, { color: colors.foreground }]}>
-                Settlement Target %
+                Settlement Target
               </Text>
-              <View style={styles.pctRow}>
-                {SETTLEMENT_OPTIONS.map((pct) => (
-                  <Pressable
-                    key={pct}
-                    onPress={() => setSettlementPct(pct)}
-                    style={[
-                      styles.pctBtn,
-                      {
-                        backgroundColor:
-                          settlementPct === pct ? colors.primary : colors.muted,
-                        borderColor:
-                          settlementPct === pct ? colors.primary : colors.border,
-                      },
-                    ]}
-                  >
-                    <Text
-                      style={[
-                        styles.pctText,
-                        {
-                          color:
-                            settlementPct === pct
-                              ? colors.primaryForeground
-                              : colors.foreground,
-                        },
-                      ]}
-                    >
-                      {Math.round(pct * 100)}%
-                    </Text>
-                  </Pressable>
-                ))}
-              </View>
+              <Text style={[styles.targetCaption, { color: colors.mutedForeground }]}>
+                Program-wide target — applies to every creditor.
+              </Text>
+              <Pressable
+                onPress={() => router.push("/profile")}
+                style={[styles.targetRow, { borderColor: colors.border, backgroundColor: colors.card }]}
+              >
+                <Text style={[styles.targetValue, { color: colors.foreground }]}>
+                  {Math.round(settlementPct * 100)}% of balance
+                </Text>
+                <Text style={[styles.targetHint, { color: colors.primary }]}>Change in Settings</Text>
+              </Pressable>
             </View>
 
             <View style={styles.field}>
@@ -207,6 +189,11 @@ export default function AddCreditorScreen() {
         </ScrollView>
 
         <View style={[styles.footer, { borderTopColor: colors.border, paddingBottom: Platform.OS === "web" ? 34 : 16 }]}>
+          {!canSave && (
+            <Text style={[styles.footerHint, { color: colors.mutedForeground }]}>
+              Add a creditor name and amount owed to continue.
+            </Text>
+          )}
           <Button
             label="Save Creditor"
             onPress={handleSave}
@@ -244,15 +231,18 @@ const styles = StyleSheet.create({
   dollar: { fontSize: 16, fontFamily: "Inter_600SemiBold", marginRight: 4 },
   dollarField: { flex: 1, fontSize: 15, fontFamily: "Inter_400Regular", height: 50 },
   perMo: { fontSize: 13, fontFamily: "Inter_400Regular" },
-  pctRow: { flexDirection: "row", gap: 8 },
-  pctBtn: {
-    flex: 1,
-    paddingVertical: 10,
-    borderRadius: 8,
-    borderWidth: 1,
+  targetRow: {
+    flexDirection: "row",
     alignItems: "center",
+    justifyContent: "space-between",
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    height: 50,
   },
-  pctText: { fontSize: 13, fontFamily: "Inter_700Bold" },
+  targetCaption: { fontSize: 12, fontFamily: "Inter_400Regular", lineHeight: 16 },
+  targetValue: { fontSize: 15, fontFamily: "Inter_600SemiBold" },
+  targetHint: { fontSize: 13, fontFamily: "Inter_600SemiBold" },
   preview: {
     borderRadius: 12,
     borderWidth: 1,
@@ -265,4 +255,10 @@ const styles = StyleSheet.create({
   previewLabel: { fontSize: 11, fontFamily: "Inter_400Regular" },
   previewValue: { fontSize: 15, fontFamily: "Inter_700Bold" },
   footer: { padding: 20, paddingTop: 12, borderTopWidth: 1 },
+  footerHint: {
+    fontSize: 12,
+    fontFamily: "Inter_400Regular",
+    textAlign: "center",
+    marginBottom: 10,
+  },
 });

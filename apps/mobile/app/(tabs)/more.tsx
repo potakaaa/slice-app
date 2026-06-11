@@ -12,13 +12,17 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { TierBadge } from "@/components/TierBadge";
+import { useTour } from "@/components/tour";
 import { useColors } from "@/hooks/useColors";
 import { useProfile } from "@/lib/sliceData";
 
 interface MenuItem {
   icon: keyof typeof Feather.glyphMap;
   label: string;
-  route: string;
+  /** Navigation target. Omit for action items (see `action`). */
+  route?: string;
+  /** Built-in action handled in-screen instead of navigating. */
+  action?: "replayTour";
   desc?: string;
   premium?: boolean;
 }
@@ -40,6 +44,12 @@ const MENU_GROUPS: { title: string; items: MenuItem[] }[] = [
     ],
   },
   {
+    title: "Help",
+    items: [
+      { icon: "compass", label: "Replay app tour", action: "replayTour", desc: "Take the quick guided tour again" },
+    ],
+  },
+  {
     title: "Legal",
     items: [
       { icon: "file-text", label: "Legal Disclaimer", route: "/legal", desc: "Important disclosures about SLICE" },
@@ -53,6 +63,16 @@ export default function MoreScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { profile } = useProfile();
+  const { start: startTour } = useTour();
+
+  const handleItemPress = (item: MenuItem) => {
+    if (item.action === "replayTour") {
+      // start() navigates to the first tab itself, so just kick it off.
+      startTour();
+      return;
+    }
+    if (item.route) router.push(item.route as any);
+  };
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const bottomPad = 84;
@@ -97,9 +117,9 @@ export default function MoreScreen() {
             </Text>
             <View style={[styles.groupCard, { borderColor: colors.border, backgroundColor: colors.card }]}>
               {group.items.map((item, i) => (
-                <React.Fragment key={item.route}>
+                <React.Fragment key={item.label}>
                   <Pressable
-                    onPress={() => router.push(item.route as any)}
+                    onPress={() => handleItemPress(item)}
                     style={({ pressed }) => [styles.menuItem, { opacity: pressed ? 0.7 : 1 }]}
                   >
                     <Feather name={item.icon} size={18} color={colors.primary} style={styles.menuIcon} />

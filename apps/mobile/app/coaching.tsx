@@ -17,6 +17,7 @@ import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { UpgradePrompt } from "@/components/UpgradePrompt";
 import { useColors } from "@/hooks/useColors";
+import { celebrate } from "@/lib/celebrate";
 import { integrationMessage } from "@/lib/integrationErrors";
 import { useCreditors, useProfile, useRequestCoaching } from "@/lib/sliceData";
 import {
@@ -70,6 +71,11 @@ export default function CoachingScreen() {
       if (result.scheduling_url) {
         await WebBrowser.openBrowserAsync(result.scheduling_url);
       }
+      // M24: a human is now in the loop — the highest-touch engagement. Warm
+      // welcome voice (gratitude, not pride; never triggers a review ask), once.
+      // Fired AFTER the Calendly browser closes so the confetti lands on the
+      // success card the user returns to, not hidden behind the browser.
+      celebrate("coaching_booked", { once: true });
     } catch (error) {
       setSubmitError(integrationMessage(error, "The coaching request could not be submitted."));
     }

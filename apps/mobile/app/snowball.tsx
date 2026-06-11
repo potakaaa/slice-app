@@ -82,7 +82,7 @@ export default function SnowballScreen() {
           </View>
 
           <Text style={[styles.method, { color: colors.mutedForeground }]}>
-            Snowball method: Pay off smallest balances first for quick wins, then roll savings into the next creditor.
+            Snowball method: Tackle the creditor you can settle soonest for an early win, then roll those savings into the next one.
           </Text>
 
           {/* Timeline */}

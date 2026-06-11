@@ -13,7 +13,6 @@ import {
 } from "@/utils/calculations";
 import { StatusBadge } from "./Badge";
 import { Card } from "./Card";
-import { ProgressBar } from "./ProgressBar";
 
 interface CreditorCardProps {
   creditor: Creditor;
@@ -83,12 +82,9 @@ export function CreditorCard({ creditor, showProgress = false, rank }: CreditorC
 
         {showProgress && (
           <View style={styles.progressSection}>
-            <View style={styles.progressLabel}>
-              <Text style={[styles.pct, { color: colors.mutedForeground }]}>
-                {formatPct(creditor.settlementPercentage)} target
-              </Text>
-            </View>
-            <ProgressBar progress={0} />
+            <Text style={[styles.pct, { color: colors.mutedForeground }]}>
+              {formatPct(creditor.settlementPercentage)} settlement target
+            </Text>
           </View>
         )}
       </Card>
@@ -153,11 +149,6 @@ const styles = StyleSheet.create({
   },
   progressSection: {
     marginTop: 12,
-  },
-  progressLabel: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 6,
   },
   pct: {
     fontSize: 12,

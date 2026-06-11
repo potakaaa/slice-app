@@ -1,5 +1,5 @@
 const APP_NAME = "Slice";
-const DEFAULT_PRODUCTION_ORIGIN = "https://slice.marcfeinberg.com";
+const DEFAULT_PRODUCTION_ORIGIN = "https://slicemydebt.com";
 const env = process["env"];
 
 const buildProfile = env["EAS_BUILD_PROFILE"];

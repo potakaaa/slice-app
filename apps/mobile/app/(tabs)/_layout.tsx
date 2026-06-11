@@ -7,6 +7,7 @@ import { Feather } from "@expo/vector-icons";
 import React from "react";
 import { Platform, StyleSheet, View, useColorScheme } from "react-native";
 
+import { TourOverlay, TourProvider } from "@/components/tour";
 import { useColors } from "@/hooks/useColors";
 
 function NativeTabLayout() {
@@ -140,8 +141,10 @@ function ClassicTabLayout() {
 }
 
 export default function TabLayout() {
-  if (isLiquidGlassAvailable()) {
-    return <NativeTabLayout />;
-  }
-  return <ClassicTabLayout />;
+  return (
+    <TourProvider>
+      {isLiquidGlassAvailable() ? <NativeTabLayout /> : <ClassicTabLayout />}
+      <TourOverlay />
+    </TourProvider>
+  );
 }

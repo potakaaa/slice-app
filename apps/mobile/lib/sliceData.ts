@@ -1,3 +1,5 @@
+import { useMemo } from "react";
+
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { useAuth } from "@/lib/auth";
@@ -109,9 +111,12 @@ export const DEFAULT_PROFILE: UserProfile = {
   email: "",
   creditScore: 0,
   primaryGoal: "settle",
+  estimatedTotalDebt: 0,
   defaultSettlementPercentage: 0.5,
   defaultMonthlySavings: 500,
   currentSavedCash: 0,
+  monthlyIncome: 0,
+  monthlyExpenses: [],
   tier: "free",
   onboardingComplete: false,
 };
@@ -129,9 +134,12 @@ export function mapProfile(row: ProfileRow | null | undefined): UserProfile {
     email: row.email,
     creditScore: row.credit_score ?? 0,
     primaryGoal: row.primary_goal ?? "settle",
+    estimatedTotalDebt: 0,
     defaultSettlementPercentage: toNumber(row.default_settlement_percentage, 0.5),
     defaultMonthlySavings: toNumber(row.default_monthly_savings, 500),
     currentSavedCash: toNumber(row.current_saved_cash, 0),
+    monthlyIncome: 0,
+    monthlyExpenses: [],
     tier: row.tier,
     onboardingComplete: row.onboarding_complete,
   };
@@ -358,6 +366,7 @@ export function useAiUsage() {
 
 export function useCreditors() {
   const { user } = useAuth();
+  const { profile } = useProfile();
   const query = useQuery({
     queryKey: ["creditors", user?.id],
     enabled: Boolean(user),
@@ -368,9 +377,23 @@ export function useCreditors() {
     },
   });
 
+  // Settlement % is a single program-wide setting (chosen at onboarding, edited
+  // in Settings), not a per-creditor value. Project the profile default onto
+  // every creditor here so all readers — sorting, targets, timelines — stay in
+  // sync the instant the global % changes, without touching each call site.
+  const globalSettlementPct = profile.defaultSettlementPercentage;
+  const creditors = useMemo(
+    () =>
+      (query.data ?? []).map((creditor) => ({
+        ...creditor,
+        settlementPercentage: globalSettlementPct,
+      })),
+    [query.data, globalSettlementPct]
+  );
+
   return {
     ...query,
-    creditors: query.data ?? [],
+    creditors,
   };
 }
 

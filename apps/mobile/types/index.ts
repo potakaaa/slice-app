@@ -2,18 +2,39 @@ export type SubscriptionTier = "free" | "silver" | "gold" | "platinum";
 export type PrimaryGoal = "settle" | "repair" | "prepare" | "payoff";
 export type CreditorStatus = "active" | "negotiating" | "settled" | "closed";
 export type ScriptTone = "calm" | "firm" | "hardship" | "direct";
+/** First-run guided tutorial lifecycle. `pending` = eligible to be offered. */
+export type TutorialStatus = "pending" | "in_progress" | "completed" | "skipped";
 
 export interface UserProfile {
   name: string;
   email: string;
   creditScore: number;
   primaryGoal: PrimaryGoal;
+  /** Self-reported total owed across all debts, captured up-front in onboarding
+   *  before individual creditors are added. Per-creditor balances remain the
+   *  source of truth once entered (see getTotalDebt). */
+  estimatedTotalDebt: number;
   defaultSettlementPercentage: number;
   defaultMonthlySavings: number;
   /** Cash already saved toward the first settlement offer (the settlement fund). */
   currentSavedCash: number;
+  /** Self-reported total take-home income per month (onboarding budget step). */
+  monthlyIncome: number;
+  /** Recurring monthly expenses captured in the onboarding budget step. The
+   *  surplus (income − expenses) is the room a user realistically has to fund
+   *  settlements. */
+  monthlyExpenses: BudgetExpense[];
   tier: SubscriptionTier;
   onboardingComplete: boolean;
+  /** ISO timestamp the user finished the optional first-run tour (local-first;
+   *  best-effort Supabase sync is a deferred follow-up). */
+  tutorialCompletedAt?: string | null;
+}
+
+export interface BudgetExpense {
+  id: string;
+  label: string;
+  amount: number;
 }
 
 export interface Creditor {

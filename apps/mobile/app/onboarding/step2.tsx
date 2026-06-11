@@ -16,6 +16,7 @@ import {
 
 import { Button } from "@/components/Button";
 import { useColors } from "@/hooks/useColors";
+import { celebrate } from "@/lib/celebrate";
 import { useAppStore } from "@/store/useAppStore";
 import {
   formatCurrency,
@@ -97,6 +98,9 @@ export default function OnboardingStep2() {
         addedAt: new Date().toISOString(),
       }))
     );
+    // M3: first creditor added — the core activation event. Full celebration,
+    // once per user (the hardest, bravest step deserves the warm voice).
+    celebrate("m3_first_creditor", { once: true });
     router.push("/onboarding/step3");
   };
 

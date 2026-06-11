@@ -4,6 +4,7 @@ import { View } from "react-native";
 
 import { SkeletonScreen } from "@/components/Skeleton";
 import { useAuth } from "@/lib/auth";
+import { celebrate } from "@/lib/celebrate";
 import { useProfile } from "@/lib/sliceData";
 import { useAppStore } from "@/store/useAppStore";
 
@@ -25,10 +26,15 @@ export default function Index() {
     if (profile.onboardingComplete) {
       markOnboardingSeen();
       router.replace("/(tabs)");
-    } else if (onboardingReadyForAuth) {
-      router.replace("/onboarding/complete");
     } else {
-      router.replace("/onboarding");
+      // First landing of a freshly-registered account, before they've finished
+      // onboarding. Celebrate the sign-up exactly once — the root CelebrationHost
+      // keeps the confetti on screen across the nav into onboarding, and `once`
+      // dedupes permanently so returning users and re-renders never re-trigger it.
+      celebrate("m1_registered", { once: true });
+      router.replace(
+        onboardingReadyForAuth ? "/onboarding/complete" : "/onboarding/step1"
+      );
     }
   }, [
     authLoading,

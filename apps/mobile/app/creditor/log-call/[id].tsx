@@ -14,10 +14,9 @@ import {
 
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
-import { CelebrationOverlay } from "@/components/CelebrationOverlay";
 import { useColors } from "@/hooks/useColors";
+import { celebrate } from "@/lib/celebrate";
 import { hapticSelection } from "@/lib/haptics";
-import { maybeRequestReview } from "@/lib/reviewPrompt";
 import { useCreateContactLog, useCreditors, useUpdateCreditor } from "@/lib/sliceData";
 import { useAppStore } from "@/store/useAppStore";
 import {
@@ -51,7 +50,6 @@ export default function LogCallScreen() {
   const [amount, setAmount] = useState("");
   const [followUp, setFollowUp] = useState<FollowUpOption>("none");
   const [notes, setNotes] = useState("");
-  const [celebrate, setCelebrate] = useState(false);
 
   const topPad = Platform.OS === "web" ? 67 : 0;
 
@@ -74,9 +72,26 @@ export default function LogCallScreen() {
 
     if (outcomeMarksSettled(outcome) && creditor.status !== "settled") {
       updateCreditor.mutate({ id: creditor.id, updates: { status: "settled" } });
-      recordHappyMoment();
-      setCelebrate(true);
+      // Clearing the last creditor is debt-free — the ultimate peak (hero).
+      const becameDebtFree = creditors
+        .filter((c) => c.id !== creditor.id)
+        .every((c) => c.status === "settled");
+      recordHappyMoment(becameDebtFree ? 3 : 1);
+      if (becameDebtFree) {
+        celebrate("m19_debt_free", { once: true });
+      } else {
+        celebrate("m17_settled");
+      }
+      router.back();
       return;
+    }
+    // M13: the user picked up the phone and logged a real call — the bravest,
+    // most valuable real-world action. Full celebration, once. (If they also set
+    // a follow-up, M13's higher tier wins the single on-screen slot.)
+    celebrate("m13_logged_call", { once: true });
+    // M15: scheduling a follow-up keeps momentum — a light nudge the first time.
+    if (followUp !== "none") {
+      celebrate("m15_follow_up", { once: true });
     }
     router.back();
   };
@@ -200,17 +215,6 @@ export default function LogCallScreen() {
           </Text>
         </ScrollView>
       </KeyboardAvoidingView>
-
-      <CelebrationOverlay
-        visible={celebrate}
-        title="Offer Accepted!"
-        message={`${creditor.name} is marked settled — one step closer to debt-free.`}
-        onDone={() => {
-          setCelebrate(false);
-          void maybeRequestReview();
-          router.back();
-        }}
-      />
     </SafeAreaView>
   );
 }

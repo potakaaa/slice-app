@@ -14,13 +14,16 @@ import {
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { useColors } from "@/hooks/useColors";
+import { celebrate } from "@/lib/celebrate";
 import { useProfile, useUpsertProfile } from "@/lib/sliceData";
+import { useAppStore } from "@/store/useAppStore";
 import { formatCurrency, formatMoneyInput, parseMoneyInput } from "@/utils/calculations";
 
 export default function AddToFundScreen() {
   const colors = useColors();
   const { profile } = useProfile();
   const upsertProfile = useUpsertProfile();
+  const recordHappyMoment = useAppStore((s) => s.recordHappyMoment);
 
   const [amount, setAmount] = useState("");
   const added = parseMoneyInput(amount);
@@ -30,6 +33,11 @@ export default function AddToFundScreen() {
 
   const handleAdd = async () => {
     await upsertProfile.mutateAsync({ currentSavedCash: newTotal });
+    // M14: real forward motion toward the first offer. Build review goodwill on
+    // every contribution, but only the first one earns the full celebration —
+    // routine top-ups stay quiet.
+    recordHappyMoment(1);
+    celebrate("m14_added_fund", { once: true });
     router.back();
   };
 
