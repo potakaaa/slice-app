@@ -24,15 +24,16 @@ interface MenuItem {
   /** Built-in action handled in-screen instead of navigating. */
   action?: "replayTour";
   desc?: string;
-  premium?: boolean;
+  /** Tier requirement badge shown next to the label (e.g. "SILVER+", "PLATINUM"). */
+  tierTag?: string;
 }
 
 const MENU_GROUPS: { title: string; items: MenuItem[] }[] = [
   {
     title: "Resources",
     items: [
-      { icon: "shield", label: "Credit Repair", route: "/credit-repair", desc: "Checklist, dispute letters, score tracking" },
-      { icon: "calendar", label: "Coaching with Marc", route: "/coaching", desc: "1-on-1 debt resolution sessions", premium: true },
+      { icon: "shield", label: "Credit Repair", route: "/credit-repair", desc: "Checklist, dispute letters, score tracking", tierTag: "PLATINUM" },
+      { icon: "calendar", label: "Coaching with Marc", route: "/coaching", desc: "1-on-1 debt resolution sessions", tierTag: "SILVER+" },
     ],
   },
   {
@@ -128,9 +129,9 @@ export default function MoreScreen() {
                         <Text style={[styles.menuLabel, { color: colors.foreground }]}>
                           {item.label}
                         </Text>
-                        {item.premium && (
+                        {item.tierTag && (
                           <View style={[styles.premiumTag, { backgroundColor: colors.secondary }]}>
-                            <Text style={[styles.premiumText, { color: colors.primary }]}>SILVER+</Text>
+                            <Text style={[styles.premiumText, { color: colors.primary }]}>{item.tierTag}</Text>
                           </View>
                         )}
                       </View>

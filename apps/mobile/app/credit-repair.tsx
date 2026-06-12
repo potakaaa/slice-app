@@ -13,8 +13,10 @@ import {
 
 import { Card } from "@/components/Card";
 import { ProgressBar } from "@/components/ProgressBar";
+import { UpgradePrompt } from "@/components/UpgradePrompt";
 import { useColors } from "@/hooks/useColors";
 import { useCreditRepairTasks, useProfile, useToggleCreditRepairTask, useUpsertProfile } from "@/lib/sliceData";
+import { tierMeets } from "@/lib/tierBenefits";
 
 const CATEGORIES = ["All", "Report", "Dispute", "Settlement", "Documentation", "Monitoring", "Planning"];
 
@@ -33,6 +35,8 @@ export default function CreditRepairScreen() {
   const topPad = Platform.OS === "web" ? 67 : 0;
   const bottomPad = Platform.OS === "web" ? 34 : 20;
 
+  const isPlatinum = tierMeets(profile.tier, "platinum");
+
   const filtered =
     selectedCat === "All"
       ? creditRepairTasks
@@ -47,6 +51,23 @@ export default function CreditRepairScreen() {
       updateProfile.mutate({ creditScore: score });
     }
   };
+
+  if (!isPlatinum) {
+    return (
+      <SafeAreaView style={[styles.safe, { backgroundColor: colors.background, paddingTop: topPad }]}>
+        <ScrollView
+          contentContainerStyle={[styles.scroll, { paddingBottom: bottomPad }]}
+          showsVerticalScrollIndicator={false}
+        >
+          <UpgradePrompt
+            requiredTier="platinum"
+            feature="Credit Repair Toolkit"
+            description="Track your credit score, work a guided credit repair checklist, and prepare dispute letters — all in one place. Available exclusively on the Platinum plan."
+          />
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: colors.background, paddingTop: topPad }]}>
@@ -218,7 +239,7 @@ export default function CreditRepairScreen() {
           </View>
           <Text style={[styles.comingSoonDesc, { color: colors.mutedForeground }]}>
             Generate personalized credit dispute letters for each bureau. Available in a future
-            update for Gold and Platinum members.
+            update for Platinum members.
           </Text>
         </Card>
 

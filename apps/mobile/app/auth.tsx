@@ -55,6 +55,17 @@ export default function AuthScreen() {
     router.replace("/");
   }, [session, setAwaitingEmailConfirmation]);
 
+  // Defense-in-depth: the "Check your email" gate is session-scoped UI state.
+  // On mount with no session and no in-flight sign-up, force it closed so a
+  // stale flag (e.g. re-persisted by some future code path) can never make the
+  // confirmation gate the first screen. Mount-only (empty deps) so it does NOT
+  // re-run after handleSubmit sets the flag true mid-session.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (!session) setAwaitingEmailConfirmation(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const canSubmit =
     email.trim().includes("@") &&
     password.length >= 6 &&
@@ -71,6 +82,10 @@ export default function AuthScreen() {
       } else {
         const nextSession = await signUp(email, password, name);
         if (!nextSession) {
+          // Fresh sign-up needs email confirmation. Clear any stale dismissal
+          // flag so the "Check your email" screen actually renders this attempt
+          // (otherwise a prior "Back to Sign In" tap keeps the gate suppressed).
+          setConfirmationSignIn(false);
           setAwaitingEmailConfirmation(true);
           return;
         }
@@ -139,6 +154,9 @@ export default function AuthScreen() {
                   onPress={() => {
                     setMode(item);
                     setError("");
+                    // Switching tabs leaves the confirm screen; reset the local
+                    // dismissal flag so a later sign-up can re-show it.
+                    setConfirmationSignIn(false);
                   }}
                   style={[
                     styles.modeButton,

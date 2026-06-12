@@ -185,7 +185,7 @@ export const useAppStore = create<AppStore>()(
     {
       name: "slice-onboarding-draft",
       storage: createJSONStorage(() => AsyncStorage),
-      version: 4,
+      version: 5,
       // Existing installs (persisted before the tutorial shipped) have no
       // `tutorialStatus`. Default them to `skipped` so only genuinely-new users
       // — who get `pending` set at onboarding completion — are ever offered it.
@@ -215,13 +215,19 @@ export const useAppStore = create<AppStore>()(
         if (version < 4 && persisted && persisted.draftOwnerId === undefined) {
           persisted.draftOwnerId = null;
         }
+        // v5: awaitingEmailConfirmation is session-scoped UI state and must not
+        // survive a cold launch (it was wrongly persisted before v5, causing the
+        // "Check your email" gate to be the first screen on relaunch). Strip any
+        // persisted value so rehydrate falls back to the in-memory default (false).
+        if (version < 5 && persisted && persisted.awaitingEmailConfirmation !== undefined) {
+          delete persisted.awaitingEmailConfirmation;
+        }
         return persisted;
       },
       partialize: (state) => ({
         hasSeenOnboarding: state.hasSeenOnboarding,
         onboardingReadyForAuth: state.onboardingReadyForAuth,
         draftOwnerId: state.draftOwnerId,
-        awaitingEmailConfirmation: state.awaitingEmailConfirmation,
         profile: state.profile,
         creditors: state.creditors,
         tutorialStatus: state.tutorialStatus,
