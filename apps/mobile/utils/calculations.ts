@@ -40,6 +40,30 @@ export function calcTargetDate(months: number): string {
   return date.toLocaleDateString("en-US", { month: "short", year: "numeric" });
 }
 
+/**
+ * A month count as a human plan, not a raw number: "under a month", "8 mo",
+ * "3 yr 4 mo". Shared so onboarding, the finale, and the dashboard all read the
+ * same program length the same way.
+ */
+export function formatProgramLength(months: number): string {
+  if (months < 1) return "under a month";
+  if (months < 12) return `${months} mo`;
+  const years = Math.floor(months / 12);
+  const rem = months % 12;
+  return rem === 0 ? `${years} yr` : `${years} yr ${rem} mo`;
+}
+
+/**
+ * Today + N months as a friendly full date, e.g. "November 2029", so a
+ * first-timer reads a real "debt-free by" calendar moment rather than a raw
+ * month count.
+ */
+export function calcDebtFreeDate(months: number): string {
+  const date = new Date();
+  date.setMonth(date.getMonth() + Math.max(0, months));
+  return date.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+}
+
 export function formatCurrency(amount: number): string {
   return new Intl.NumberFormat("en-US", {
     style: "currency",

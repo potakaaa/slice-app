@@ -19,23 +19,15 @@ import { useColors } from "@/hooks/useColors";
 import { celebrate } from "@/lib/celebrate";
 import { useAppStore } from "@/store/useAppStore";
 import {
+  calcDebtFreeDate,
   calcProgramLength,
-  calcTargetDate,
   formatCurrency,
   formatMoneyInput,
+  formatProgramLength,
   parseMoneyInput,
 } from "@/utils/calculations";
 
 const SETTLEMENT_OPTIONS = [0.3, 0.4, 0.5, 0.6, 0.7];
-
-/** Months → "1 yr 2 mo" / "8 mo" so a count reads as a plan, not a raw number. */
-function formatMonths(months: number): string {
-  if (months < 1) return "under a month";
-  if (months < 12) return `${months} mo`;
-  const years = Math.floor(months / 12);
-  const rem = months % 12;
-  return rem === 0 ? `${years} yr` : `${years} yr ${rem} mo`;
-}
 
 export default function OnboardingStep1() {
   const colors = useColors();
@@ -60,9 +52,11 @@ export default function OnboardingStep1() {
   const monthlySavingsAmount = parseMoneyInput(monthlySavings);
   // Program length (automated): months to fund the target at their savings rate.
   const programMonths = calcProgramLength(settlementTarget, monthlySavingsAmount);
+  // Friendly finish date with the full month + year, e.g. "November 2029", so a
+  // first-timer reads a real calendar moment rather than a raw month count.
   const targetDateLabel =
     monthlySavingsAmount > 0 && programMonths > 0
-      ? calcTargetDate(programMonths)
+      ? calcDebtFreeDate(programMonths)
       : "";
   // Total debt savings (automated): what they keep vs. paying the full balance.
   const totalSaved = Math.max(0, debtAmount - settlementTarget);
@@ -208,27 +202,20 @@ export default function OnboardingStep1() {
               <View style={[styles.estimate, { backgroundColor: colors.muted, borderColor: colors.border }]}>
                 {monthlySavingsAmount > 0 && programMonths > 0 && (
                   <>
-                    <View style={styles.timelineRow}>
-                      <View style={styles.timelineMetric}>
-                        <Text style={[styles.timelineLabel, { color: colors.mutedForeground }]}>
-                          Length
-                        </Text>
-                        <Text style={[styles.timelineValue, { color: colors.foreground }]}>
-                          {formatMonths(programMonths)}
-                        </Text>
-                      </View>
-                      <View style={[styles.timelineDivider, { backgroundColor: colors.border }]} />
-                      <View style={styles.timelineMetric}>
-                        <Text style={[styles.timelineLabel, { color: colors.mutedForeground }]}>
-                          Finish
-                        </Text>
-                        <Text style={[styles.timelineValue, { color: colors.primary }]}>
-                          {targetDateLabel}
-                        </Text>
-                      </View>
-                    </View>
+                    <Text style={[styles.timelineHeading, { color: colors.mutedForeground }]}>
+                      Your program length
+                    </Text>
+                    <Text style={[styles.timelineBig, { color: colors.primary }]}>
+                      {formatProgramLength(programMonths)}
+                    </Text>
+                    <Text style={[styles.timelineFinish, { color: colors.foreground }]}>
+                      You'll be debt-free by{" "}
+                      <Text style={[styles.timelineFinishStrong, { color: colors.primary }]}>
+                        {targetDateLabel}
+                      </Text>
+                    </Text>
                     <Text style={[styles.timelineNote, { color: colors.mutedForeground }]}>
-                      Estimated at {formatCurrency(monthlySavingsAmount)}/month
+                      Saving {formatCurrency(monthlySavingsAmount)}/month
                     </Text>
                     <View style={[styles.estimateDivider, { backgroundColor: colors.border }]} />
                   </>
@@ -317,18 +304,10 @@ const styles = StyleSheet.create({
   heroValue: { fontSize: 30, fontFamily: "Inter_700Bold", letterSpacing: -0.5 },
   estimateSub: { fontSize: 12, fontFamily: "Inter_400Regular" },
   estimateDivider: { height: 1, marginVertical: 8 },
-  timelineRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 2,
-  },
-  timelineMetric: {
-    flex: 1,
-    gap: 1,
-  },
-  timelineLabel: { fontSize: 12, fontFamily: "Inter_500Medium" },
-  timelineValue: { fontSize: 18, fontFamily: "Inter_700Bold", letterSpacing: -0.2 },
-  timelineDivider: { width: 1, height: 34, marginHorizontal: 14 },
+  timelineHeading: { fontSize: 12, fontFamily: "Inter_500Medium" },
+  timelineBig: { fontSize: 30, fontFamily: "Inter_700Bold", letterSpacing: -0.5 },
+  timelineFinish: { fontSize: 14, fontFamily: "Inter_400Regular", marginTop: 2 },
+  timelineFinishStrong: { fontSize: 14, fontFamily: "Inter_700Bold" },
   timelineNote: { fontSize: 11, fontFamily: "Inter_400Regular", marginTop: 3 },
   footer: {
     padding: 20,

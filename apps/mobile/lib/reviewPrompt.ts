@@ -128,3 +128,28 @@ export async function maybeRequestReviewOnLaunch(): Promise<boolean> {
     return false;
   }
 }
+
+// ─── TEMPORARY: post-onboarding review ask ────────────────────────────────────
+// TEMPORARY (revert later): Prompt for an App Store review as soon as the user
+// lands on the dashboard after completing onboarding + signing in. This skips
+// the earned-win goodwill gates (install age / sessions / happy score) above so
+// the ask lands immediately. It still honors the safety gates (once-per-version,
+// global cooldown, no-recent-negative, platform availability) so it can never
+// become a nag.
+//
+// TO REVERT to original behavior:
+//   1. Delete this function.
+//   2. Remove its call site + import in app/(tabs)/index.tsx.
+// After that, only maybeRequestReview() and maybeRequestReviewOnLaunch() remain.
+export async function maybeRequestReviewAfterOnboarding(): Promise<boolean> {
+  try {
+    const state = useAppStore.getState();
+    if (!(await passesSafetyGates(state))) return false;
+    return await commitAndRequest(state);
+  } catch (error) {
+    reportError(error instanceof Error ? error : new Error(String(error)), {
+      source: "reviewPrompt.afterOnboarding",
+    });
+    return false;
+  }
+}

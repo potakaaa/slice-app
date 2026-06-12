@@ -2,6 +2,7 @@ import { Feather } from "@expo/vector-icons";
 import * as WebBrowser from "expo-web-browser";
 import React, { useState } from "react";
 import {
+  Image,
   Platform,
   Pressable,
   SafeAreaView,
@@ -99,9 +100,11 @@ export default function CoachingScreen() {
       >
         {/* Marc Feinberg card */}
         <View style={[styles.marcCard, { backgroundColor: colors.primary }]}>
-          <View style={[styles.marcAvatar, { backgroundColor: "rgba(255,255,255,0.2)" }]}>
-            <Feather name="user" size={40} color="#FFFFFF" />
-          </View>
+          <Image
+            source={require("@/assets/marc/marc-portrait.jpeg")}
+            style={styles.marcAvatar}
+            resizeMode="cover"
+          />
           <Text style={styles.marcName}>Marc Feinberg</Text>
           <Text style={styles.marcTitle}>Founder · Debt Coach · Author</Text>
           <Text style={styles.marcBio}>
@@ -259,8 +262,6 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    alignItems: "center",
-    justifyContent: "center",
     marginBottom: 8,
   },
   marcName: { fontSize: 22, fontFamily: "Inter_700Bold", color: "#FFFFFF" },

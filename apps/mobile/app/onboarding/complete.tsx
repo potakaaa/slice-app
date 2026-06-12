@@ -19,8 +19,10 @@ import { integrationMessage } from "@/lib/integrationErrors";
 import { useCreateCreditor, useUpsertProfile } from "@/lib/sliceData";
 import { useAppStore } from "@/store/useAppStore";
 import {
+  calcDebtFreeDate,
   calcSettlementReadiness,
   formatCurrency,
+  formatProgramLength,
   getMaxProgramLength,
   getTotalDebt,
   getTotalSettlementTarget,
@@ -221,7 +223,7 @@ export default function OnboardingComplete() {
 
             <View style={styles.planMetrics}>
               <View style={styles.planMetric}>
-                <Text style={styles.planLabel}>Monthly commitment</Text>
+                <Text style={styles.planLabel}>Suggested savings</Text>
                 <Text style={styles.planValue}>
                   {formatCurrency(monthlyContribution)}
                   <Text style={styles.perMonth}>/mo</Text>
@@ -230,11 +232,16 @@ export default function OnboardingComplete() {
               <View style={styles.planMetricDivider} />
               <View style={styles.planMetric}>
                 <Text style={styles.planLabel}>Estimated length</Text>
-                <Text style={styles.planValue}>
-                  {months} {months === 1 ? "month" : "months"}
-                </Text>
+                <Text style={styles.planValue}>{formatProgramLength(months)}</Text>
               </View>
             </View>
+
+            {months > 0 && (
+              <View style={styles.debtFreeRow}>
+                <Text style={styles.debtFreeLabel}>You'll be debt-free by</Text>
+                <Text style={styles.debtFreeValue}>{calcDebtFreeDate(months)}</Text>
+              </View>
+            )}
 
             {hasBudget &&
               remainingTarget > 0 &&
@@ -250,15 +257,15 @@ export default function OnboardingComplete() {
                       </Text>
                       <Text style={styles.fasterTitle}>
                         {canIncreaseContribution
-                          ? `Use ${formatCurrency(availableCashFlow)}/mo instead`
-                          : "Faster plan selected"}
+                          ? `Could you set aside ${formatCurrency(availableCashFlow)}/mo?`
+                          : "Faster pace selected"}
                       </Text>
                       <Text style={styles.fasterBody}>
                         {canIncreaseContribution
                           ? monthsSaved > 0
-                            ? `About ${monthsSaved} ${monthsSaved === 1 ? "month" : "months"} sooner • keep room for irregular expenses`
-                            : "Build your fund faster • keep room for irregular expenses"
-                          : `${fasterMonths} ${fasterMonths === 1 ? "month" : "months"} estimated • original was ${formatCurrency(committedContribution)}/mo`}
+                            ? `That could be about ${monthsSaved} ${monthsSaved === 1 ? "month" : "months"} sooner — but it's your call. Keep room for life.`
+                            : "That could build your fund faster — but it's your call. Keep room for life."
+                          : `${fasterMonths} ${fasterMonths === 1 ? "month" : "months"} estimated • suggested was ${formatCurrency(committedContribution)}/mo`}
                       </Text>
                     </View>
                     <Pressable
@@ -445,6 +452,23 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontFamily: "Inter_700Bold",
     textAlign: "center",
+  },
+  debtFreeRow: {
+    alignItems: "center",
+    gap: 3,
+    backgroundColor: "rgba(255,255,255,0.12)",
+    borderRadius: 12,
+    paddingVertical: 12,
+  },
+  debtFreeLabel: {
+    color: "rgba(255,255,255,0.85)",
+    fontSize: 12,
+    fontFamily: "Inter_600SemiBold",
+  },
+  debtFreeValue: {
+    color: "#FFFFFF",
+    fontSize: 22,
+    fontFamily: "Inter_700Bold",
   },
   fasterRow: {
     flexDirection: "row",

@@ -66,6 +66,8 @@ interface AppStore {
   lastPromptAt: number | null;
   /** Last negative signal (crash/failed payment/support); suppresses asks. */
   lastNegativeSignalAt: number | null;
+  /** Last time the weekly free→paid upgrade nudge was shown (ms epoch). */
+  lastUpgradePromptAt: number | null;
 
   setHasHydrated: (hasHydrated: boolean) => void;
   updateProfile: (updates: Partial<UserProfile>) => void;
@@ -99,6 +101,8 @@ interface AppStore {
   markMilestoneCelebrated: (key: string) => boolean;
   /** Advance (and persist) the copy-rotation index for a milestone key. */
   setCelebrationCopyIndex: (key: string, index: number) => void;
+  /** Stamp that the weekly upgrade nudge was just shown (starts the cooldown). */
+  markUpgradePrompted: () => void;
 }
 
 export const useAppStore = create<AppStore>()(
@@ -121,6 +125,7 @@ export const useAppStore = create<AppStore>()(
       sessionCount: 0,
       lastPromptAt: null,
       lastNegativeSignalAt: null,
+      lastUpgradePromptAt: null,
 
       setHasHydrated: (hasHydrated) => set({ hasHydrated }),
       updateProfile: (updates) =>
@@ -181,11 +186,12 @@ export const useAppStore = create<AppStore>()(
         set((state) => ({
           celebrationCopyIndex: { ...state.celebrationCopyIndex, [key]: index },
         })),
+      markUpgradePrompted: () => set({ lastUpgradePromptAt: Date.now() }),
     }),
     {
       name: "slice-onboarding-draft",
       storage: createJSONStorage(() => AsyncStorage),
-      version: 5,
+      version: 6,
       // Existing installs (persisted before the tutorial shipped) have no
       // `tutorialStatus`. Default them to `skipped` so only genuinely-new users
       // — who get `pending` set at onboarding completion — are ever offered it.
@@ -222,6 +228,12 @@ export const useAppStore = create<AppStore>()(
         if (version < 5 && persisted && persisted.awaitingEmailConfirmation !== undefined) {
           delete persisted.awaitingEmailConfirmation;
         }
+        // v6: weekly free→paid upgrade nudge gained `lastUpgradePromptAt`. Default
+        // existing installs to `null` (never prompted) so the first weekly nudge
+        // becomes eligible on their next dashboard visit.
+        if (version < 6 && persisted && persisted.lastUpgradePromptAt === undefined) {
+          persisted.lastUpgradePromptAt = null;
+        }
         return persisted;
       },
       partialize: (state) => ({
@@ -240,6 +252,7 @@ export const useAppStore = create<AppStore>()(
         sessionCount: state.sessionCount,
         lastPromptAt: state.lastPromptAt,
         lastNegativeSignalAt: state.lastNegativeSignalAt,
+        lastUpgradePromptAt: state.lastUpgradePromptAt,
       }),
       onRehydrateStorage: () => (state) => {
         state?.setHasHydrated(true);

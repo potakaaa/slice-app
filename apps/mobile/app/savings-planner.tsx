@@ -176,7 +176,7 @@ export default function SavingsPlannerScreen() {
               </View>
               <View style={[styles.statTile, { backgroundColor: colors.secondary }]}>
                 <Text style={[styles.statLabel, { color: colors.mutedForeground }]}>
-                  Monthly Savings
+                  Suggested/mo
                 </Text>
                 <Text style={[styles.statValue, { color: colors.foreground }]}>
                   {formatCurrency(program.monthlySavingsAmount)}
@@ -243,10 +243,10 @@ export default function SavingsPlannerScreen() {
           {program.monthlySavingsAmount <= 0 ? (
             <Card style={styles.noticeCard}>
               <Text style={[styles.noticeTitle, { color: colors.foreground }]}>
-                Monthly savings amount required
+                Add a suggested monthly amount
               </Text>
               <Text style={[styles.noticeText, { color: colors.mutedForeground }]}>
-                Add a monthly savings amount in your profile to generate the tracker timeline.
+                Set a suggested monthly savings amount in your profile and we'll map out your tracker timeline. You can change it anytime.
               </Text>
             </Card>
           ) : !trackerEnabled ? (

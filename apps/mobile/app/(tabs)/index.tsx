@@ -13,22 +13,24 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { SliceLogo } from "@/components/SliceLogo";
-import { SummaryCard } from "@/components/SummaryCard";
+import { ProgramSnapshotHero } from "@/components/ProgramSnapshotHero";
 import { CreditorCard } from "@/components/CreditorCard";
 import { EmptyState } from "@/components/EmptyState";
 import { SavingsAccountPrompt } from "@/components/SavingsAccountPrompt";
-import { SettlementReadinessCard } from "@/components/SettlementReadinessCard";
+import { NextFocusCard } from "@/components/NextFocusCard";
 import { SkeletonScreen } from "@/components/Skeleton";
 import { TierBadge } from "@/components/TierBadge";
 import { TourWelcomeSheet } from "@/components/tour";
+import { UpgradeNudgeDialog } from "@/components/UpgradeNudgeDialog";
 import { useColors } from "@/hooks/useColors";
 import { celebrate } from "@/lib/celebrate";
+// TEMPORARY (revert later): post-onboarding App Store review prompt.
+import { maybeRequestReviewAfterOnboarding } from "@/lib/reviewPrompt";
 import { useAggregateProgram, useCreditors, useProfile } from "@/lib/sliceData";
 import { useAppStore } from "@/store/useAppStore";
 import {
   buildSimpleDebtProgram,
   calcSettlementReadiness,
-  formatCurrency,
   getMaxProgramLength,
   getSortedBySnowball,
   getTotalDebt,
@@ -72,6 +74,20 @@ export default function DashboardScreen() {
       celebrate("m16_ready", { once: `m16_ready:${readyCreditorId}` });
     }
   }, [readyCreditorId]);
+
+  // TEMPORARY (revert later): once the user finishes onboarding and lands on the
+  // dashboard, prompt them to review the app on the App Store. Bypasses the
+  // normal earned-win goodwill gates (see lib/reviewPrompt.ts). A short delay
+  // lets the dashboard paint before the native sheet appears.
+  // TO REVERT: delete this effect + the maybeRequestReviewAfterOnboarding import,
+  // and remove that function from lib/reviewPrompt.ts.
+  useEffect(() => {
+    if (!profile.onboardingComplete) return;
+    const timer = setTimeout(() => {
+      void maybeRequestReviewAfterOnboarding();
+    }, 1500);
+    return () => clearTimeout(timer);
+  }, [profile.onboardingComplete]);
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const bottomPad = 84;
@@ -140,31 +156,10 @@ export default function DashboardScreen() {
               <SavingsAccountPrompt />
             )}
 
-            {profile.tier === "free" ? (
-              <Pressable
-                onPress={() => router.push("/pricing")}
-                style={({ pressed }) => [
-                  styles.tierCard,
-                  { backgroundColor: colors.secondary, borderColor: colors.primary, opacity: pressed ? 0.85 : 1 },
-                ]}
-              >
-                <View style={styles.programPromptIcon}>
-                  <Feather name="zap" size={20} color={colors.primary} />
-                </View>
-                <View style={styles.programPromptText}>
-                  <Text style={[styles.programPromptEyebrow, { color: colors.primary }]}>
-                    Unlock AI tools
-                  </Text>
-                  <Text style={[styles.programPromptTitle, { color: colors.foreground }]}>
-                    AI strategy, scripts & coaching
-                  </Text>
-                  <Text style={[styles.programPromptDesc, { color: colors.mutedForeground }]}>
-                    Upgrade to negotiate with confidence and settle for less.
-                  </Text>
-                </View>
-                <Feather name="chevron-right" size={20} color={colors.primary} />
-              </Pressable>
-            ) : (
+            {/* Free-tier upsell now lives in the weekly UpgradeNudgeDialog popup,
+                so the dashboard only shows the member-benefits card for paying
+                tiers. */}
+            {profile.tier !== "free" && (
               <Pressable
                 onPress={() => router.push("/membership")}
                 style={({ pressed }) => [
@@ -180,93 +175,31 @@ export default function DashboardScreen() {
               </Pressable>
             )}
 
-            {/* Outcome-first hero: settlement readiness */}
-            <SettlementReadinessCard readiness={readiness} />
+            {/* Whole-program snapshot — the first program content the user
+                sees: their program, overall progress, and debt-free date. */}
+            <ProgramSnapshotHero
+              programName={programName}
+              totalDebt={totalDebt}
+              totalTarget={totalTarget}
+              savings={savings}
+              savingsRatio={savingsRatio}
+              currentSaved={profile.currentSavedCash}
+              months={months}
+              suggestedMonthly={aggregateProgram.monthlySavingsAmount}
+              settlementPct={profile.defaultSettlementPercentage}
+              onPress={() => router.push("/savings-planner")}
+            />
 
-            {/* Supporting stats for the readiness hero (full detail lives in
-                the Creditors tab, Program, and Credit Repair). */}
-            <View style={styles.summaryRow}>
-              <SummaryCard
-                label="Total Debt"
-                value={formatCurrency(totalDebt)}
-                icon="credit-card"
-                style={{ flex: 1 }}
-              />
-              <SummaryCard
-                label="You Save"
-                value={formatCurrency(savings)}
-                icon="trending-down"
-                subtitle={`${savingsRatio}% off`}
-                style={{ flex: 1 }}
-              />
-              <SummaryCard
-                label="Timeline"
-                value={`${months} mo`}
-                icon="clock"
-                style={{ flex: 1 }}
-              />
-            </View>
-
+            {/* Your next focus: the single-creditor first-offer story, demoted
+                below the whole-program snapshot. */}
             <View style={styles.section}>
-              <View style={styles.sectionHeader}>
-                <Text style={[styles.sectionTitle, { color: colors.foreground }]}>
-                  Customized Program
-                </Text>
-                <Pressable onPress={() => router.push("/savings-planner")}>
-                  <Text style={[styles.seeAll, { color: colors.primary }]}>Savings Planner</Text>
-                </Pressable>
-              </View>
-              <Pressable
-                onPress={() => router.push("/savings-planner")}
-                style={({ pressed }) => [
-                  styles.programOverview,
-                  {
-                    backgroundColor: colors.card,
-                    borderColor: colors.border,
-                    opacity: pressed ? 0.8 : 1,
-                  },
-                ]}
-              >
-                <View style={styles.programOverviewHeader}>
-                  <View style={styles.programOverviewTitleWrap}>
-                    <Text style={[styles.programOverviewTitle, { color: colors.foreground }]}>
-                      {programName}
-                    </Text>
-                    <Text style={[styles.programOverviewFooterText, { color: colors.mutedForeground }]}>
-                      {aggregateProgram.programLengthMonths > 0
-                        ? `${aggregateProgram.programLengthMonths} month savings timeline`
-                        : "Add monthly savings to generate a timeline"}
-                    </Text>
-                  </View>
-                  <View style={[styles.programOverviewBadge, { backgroundColor: colors.secondary }]}>
-                    <Text style={[styles.programOverviewBadgeText, { color: colors.primary }]}>
-                      {Math.round(profile.defaultSettlementPercentage * 100)}%
-                    </Text>
-                  </View>
-                </View>
-
-                <View style={styles.programOverviewStats}>
-                  <View style={styles.programOverviewStat}>
-                    <Text style={[styles.programOverviewLabel, { color: colors.mutedForeground }]}>
-                      Settlement estimate
-                    </Text>
-                    <Text style={[styles.programOverviewValue, { color: colors.primary }]}>
-                      {formatCurrency(aggregateProgram.estimatedSettlementAmount)}
-                    </Text>
-                  </View>
-                  <View style={styles.programOverviewStat}>
-                    <Text style={[styles.programOverviewLabel, { color: colors.mutedForeground }]}>
-                      Monthly savings
-                    </Text>
-                    <Text style={[styles.programOverviewValue, { color: colors.foreground }]}>
-                      {formatCurrency(aggregateProgram.monthlySavingsAmount)}
-                    </Text>
-                  </View>
-                </View>
-              </Pressable>
+              <Text style={[styles.sectionTitle, { color: colors.foreground }]}>
+                Your next focus
+              </Text>
+              <NextFocusCard readiness={readiness} />
             </View>
 
-            {/* Next focus */}
+            {/* Next priority creditor detail */}
             {nextCreditor && (
               <View style={styles.section}>
                 <View style={styles.sectionHeader}>
@@ -326,6 +259,9 @@ export default function DashboardScreen() {
 
       {/* First-run opt-in tour prompt (renders only while status is "pending"). */}
       <TourWelcomeSheet />
+
+      {/* Weekly free→paid upgrade nudge (free users only, once every 7 days). */}
+      <UpgradeNudgeDialog />
     </View>
   );
 }
@@ -357,81 +293,6 @@ const styles = StyleSheet.create({
     padding: 14,
   },
   tierCardText: { flex: 1, fontSize: 14, fontFamily: "Inter_600SemiBold" },
-  programPromptIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 10,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#FFFFFF",
-  },
-  programPromptText: { flex: 1, gap: 3 },
-  programPromptEyebrow: {
-    fontSize: 11,
-    fontFamily: "Inter_700Bold",
-    textTransform: "uppercase",
-  },
-  programPromptTitle: {
-    fontSize: 16,
-    fontFamily: "Inter_700Bold",
-    lineHeight: 21,
-  },
-  programPromptDesc: {
-    fontSize: 12,
-    fontFamily: "Inter_400Regular",
-    lineHeight: 17,
-  },
-  programOverview: {
-    borderWidth: 1,
-    borderRadius: 12,
-    padding: 16,
-    gap: 14,
-  },
-  programOverviewHeader: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    justifyContent: "space-between",
-    gap: 12,
-  },
-  programOverviewTitleWrap: { flex: 1, gap: 3 },
-  programOverviewEyebrow: {
-    fontSize: 11,
-    fontFamily: "Inter_700Bold",
-    textTransform: "uppercase",
-  },
-  programOverviewTitle: {
-    fontSize: 18,
-    fontFamily: "Inter_700Bold",
-    lineHeight: 24,
-  },
-  programOverviewBadge: {
-    minWidth: 44,
-    height: 34,
-    borderRadius: 17,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 10,
-  },
-  programOverviewBadgeText: { fontSize: 14, fontFamily: "Inter_700Bold" },
-  programOverviewStats: { flexDirection: "row", gap: 10 },
-  programOverviewStat: { flex: 1, gap: 3 },
-  programOverviewLabel: { fontSize: 11, fontFamily: "Inter_400Regular" },
-  programOverviewValue: { fontSize: 20, fontFamily: "Inter_700Bold" },
-  programOverviewFooter: {
-    borderTopWidth: StyleSheet.hairlineWidth,
-    paddingTop: 12,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 10,
-  },
-  programOverviewFooterText: {
-    flex: 1,
-    fontSize: 12,
-    fontFamily: "Inter_600SemiBold",
-    lineHeight: 17,
-  },
-  summaryRow: { flexDirection: "row", gap: 12 },
   section: { gap: 10 },
   sectionHeader: {
     flexDirection: "row",

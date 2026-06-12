@@ -1,6 +1,7 @@
 import { router } from "expo-router";
 import React, { useState } from "react";
 import {
+  Alert,
   KeyboardAvoidingView,
   Platform,
   SafeAreaView,
@@ -15,14 +16,15 @@ import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { useColors } from "@/hooks/useColors";
 import { celebrate } from "@/lib/celebrate";
-import { useProfile, useUpsertProfile } from "@/lib/sliceData";
+import { integrationMessage } from "@/lib/integrationErrors";
+import { useProfile, useUpdateSavedCash } from "@/lib/sliceData";
 import { useAppStore } from "@/store/useAppStore";
 import { formatCurrency, formatMoneyInput, parseMoneyInput } from "@/utils/calculations";
 
 export default function AddToFundScreen() {
   const colors = useColors();
   const { profile } = useProfile();
-  const upsertProfile = useUpsertProfile();
+  const updateSavedCash = useUpdateSavedCash();
   const recordHappyMoment = useAppStore((s) => s.recordHappyMoment);
 
   const [amount, setAmount] = useState("");
@@ -32,7 +34,18 @@ export default function AddToFundScreen() {
   const topPad = Platform.OS === "web" ? 67 : 0;
 
   const handleAdd = async () => {
-    await upsertProfile.mutateAsync({ currentSavedCash: newTotal });
+    try {
+      await updateSavedCash.mutateAsync(newTotal);
+    } catch (error) {
+      Alert.alert(
+        "Couldn't save your contribution",
+        integrationMessage(
+          error,
+          "Something went wrong saving to your fund. Please try again.",
+        ),
+      );
+      return;
+    }
     // M14: real forward motion toward the first offer. Build review goodwill on
     // every contribution, but only the first one earns the full celebration —
     // routine top-ups stay quiet.
@@ -81,7 +94,7 @@ export default function AddToFundScreen() {
           <Button
             label="Add to fund"
             onPress={handleAdd}
-            loading={upsertProfile.isPending}
+            loading={updateSavedCash.isPending}
             disabled={added <= 0}
             fullWidth
           />

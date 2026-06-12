@@ -301,7 +301,57 @@ export function useUpsertProfile() {
         privacy_policy_accepted: updates.privacyAccepted,
       });
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      // Write the server-confirmed row straight into the cache so the change
+      // (e.g. a fund contribution) is reflected immediately, rather than waiting
+      // on a refetch that can return stale data or never fire if no observer is
+      // mounted. Preserve the name/email fallbacks useProfile applies.
+      const updated = mapProfile(data as ProfileRow);
+      queryClient.setQueryData<UserProfile>(["profile", user?.id], (prev) => ({
+        ...(prev ?? DEFAULT_PROFILE),
+        ...updated,
+        name: updated.name || prev?.name || "",
+        email: updated.email || prev?.email || "",
+      }));
+      queryClient.invalidateQueries({ queryKey: ["profile", user?.id] });
+    },
+  });
+}
+
+/**
+ * Persist a new settlement-fund balance (`current_saved_cash`).
+ *
+ * Writes straight to the `profiles` table via supabase-js (RLS restricts this to
+ * the row owner — the same direct-table access `useProfile` uses to auto-create
+ * the row) instead of the `profile-upsert` edge function. The function validates
+ * against its *bundled* schema, so a contribution would silently vanish whenever
+ * the deployed function lags the `current_saved_cash` column. Writing directly
+ * keeps fund top-ups working without depending on a function redeploy.
+ */
+export function useUpdateSavedCash() {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: async (currentSavedCash: number) => {
+      if (!user) throw new Error("User is required");
+      const { data, error } = await supabase
+        .from("profiles")
+        .update({ current_saved_cash: currentSavedCash })
+        .eq("id", user.id)
+        .select()
+        .single();
+      if (error) throw error;
+      return data as ProfileRow;
+    },
+    onSuccess: (data) => {
+      const updated = mapProfile(data);
+      queryClient.setQueryData<UserProfile>(["profile", user?.id], (prev) => ({
+        ...(prev ?? DEFAULT_PROFILE),
+        ...updated,
+        name: updated.name || prev?.name || "",
+        email: updated.email || prev?.email || "",
+      }));
       queryClient.invalidateQueries({ queryKey: ["profile", user?.id] });
     },
   });
