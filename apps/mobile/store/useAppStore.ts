@@ -23,6 +23,14 @@ interface AppStore {
   hasHydrated: boolean;
   hasSeenOnboarding: boolean;
   onboardingReadyForAuth: boolean;
+  /**
+   * Auth user id that owns the current onboarding draft (creditors + draft
+   * profile + `onboardingReadyForAuth`). The draft is persisted device-wide, so
+   * this stamp is what lets the root router tell "this signed-in user's own
+   * in-progress onboarding" apart from a stale draft left by a previous /
+   * abandoned account on the same device. `null` => unowned (treat as foreign).
+   */
+  draftOwnerId: string | null;
   awaitingEmailConfirmation: boolean;
   profile: UserProfile;
   creditors: Creditor[];
@@ -63,7 +71,7 @@ interface AppStore {
   updateProfile: (updates: Partial<UserProfile>) => void;
   setCreditors: (creditors: Creditor[]) => void;
   markOnboardingSeen: () => void;
-  markOnboardingReady: () => void;
+  markOnboardingReady: (ownerId: string) => void;
   setAwaitingEmailConfirmation: (awaiting: boolean) => void;
   clearDraft: () => void;
 
@@ -99,6 +107,7 @@ export const useAppStore = create<AppStore>()(
       hasHydrated: false,
       hasSeenOnboarding: false,
       onboardingReadyForAuth: false,
+      draftOwnerId: null,
       awaitingEmailConfirmation: false,
       profile: DEFAULT_PROFILE,
       creditors: [],
@@ -118,11 +127,12 @@ export const useAppStore = create<AppStore>()(
         set((state) => ({ profile: { ...state.profile, ...updates } })),
       setCreditors: (creditors) => set({ creditors }),
       markOnboardingSeen: () => set({ hasSeenOnboarding: true }),
-      markOnboardingReady: () =>
+      markOnboardingReady: (ownerId) =>
         set({
           hasSeenOnboarding: true,
           onboardingReadyForAuth: true,
           awaitingEmailConfirmation: false,
+          draftOwnerId: ownerId,
         }),
       setAwaitingEmailConfirmation: (awaitingEmailConfirmation) =>
         set({ awaitingEmailConfirmation }),
@@ -132,6 +142,7 @@ export const useAppStore = create<AppStore>()(
           creditors: [],
           hasSeenOnboarding: true,
           onboardingReadyForAuth: false,
+          draftOwnerId: null,
           awaitingEmailConfirmation: false,
         }),
 
@@ -174,7 +185,7 @@ export const useAppStore = create<AppStore>()(
     {
       name: "slice-onboarding-draft",
       storage: createJSONStorage(() => AsyncStorage),
-      version: 3,
+      version: 4,
       // Existing installs (persisted before the tutorial shipped) have no
       // `tutorialStatus`. Default them to `skipped` so only genuinely-new users
       // — who get `pending` set at onboarding completion — are ever offered it.
@@ -197,11 +208,19 @@ export const useAppStore = create<AppStore>()(
             persisted.profile.monthlyExpenses = [];
           }
         }
+        // v4: onboarding drafts are now stamped with the owning auth user id so
+        // a stale draft can't route a different account into "Program Ready".
+        // Existing in-progress drafts have no owner — default to `null` (unowned)
+        // so the root router treats them as foreign and restarts onboarding.
+        if (version < 4 && persisted && persisted.draftOwnerId === undefined) {
+          persisted.draftOwnerId = null;
+        }
         return persisted;
       },
       partialize: (state) => ({
         hasSeenOnboarding: state.hasSeenOnboarding,
         onboardingReadyForAuth: state.onboardingReadyForAuth,
+        draftOwnerId: state.draftOwnerId,
         awaitingEmailConfirmation: state.awaitingEmailConfirmation,
         profile: state.profile,
         creditors: state.creditors,
