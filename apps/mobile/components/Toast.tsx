@@ -14,7 +14,7 @@ import {
 import { useReduceMotion } from "@/hooks/useReduceMotion";
 import { hapticLight } from "@/lib/haptics";
 
-const VISIBLE_MS = 2200;
+const VISIBLE_MS = 4500;
 
 interface ToastProps {
   title: string;

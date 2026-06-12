@@ -17,8 +17,8 @@ const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get("window");
 const CONFETTI_COLORS = ["#FF5A00", "#FF8A00", "#22C55E", "#F59E0B", "#FFFFFF"];
 const PIECE_COUNT = 24;
 const HERO_PIECE_COUNT = 60;
-const VISIBLE_MS = 1900;
-const HERO_VISIBLE_MS = 3200;
+const VISIBLE_MS = 4500;
+const HERO_VISIBLE_MS = 5000;
 
 type CelebrationVariant = "standard" | "hero";
 

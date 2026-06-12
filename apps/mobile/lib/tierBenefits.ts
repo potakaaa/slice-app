@@ -119,11 +119,13 @@ export const TIER_BENEFITS: Record<SubscriptionTier, TierBenefits> = {
   platinum: {
     headline: [
       "Done-with-you creditor calls",
+      "Exclusive credit repair toolkit",
       "Priority founder coaching",
       "250 AI requests/day per tool",
     ],
     all: [
       "Live done-with-you creditor calls",
+      "Exclusive credit repair toolkit & dispute prep",
       "Priority founder coaching",
       "Priority support",
       "Up to 250 AI requests/day per tool",

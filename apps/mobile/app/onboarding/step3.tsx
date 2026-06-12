@@ -99,7 +99,10 @@ export default function OnboardingStep3() {
       monthlyIncome: incomeAmount,
       monthlyExpenses: cleaned,
     });
-    markOnboardingReady();
+    // Stamp the draft with the signed-in user so the root router can tell this
+    // user's own in-progress onboarding apart from a stale draft on the device.
+    // (No session => this branch routes to /auth below, so the value is moot.)
+    markOnboardingReady(session?.user.id ?? "");
     // Budget complete — a full, confetti-grade "you did it again" moment
     // (first time only). If this leads straight into "Program Ready", that
     // milestone outranks and replaces it.

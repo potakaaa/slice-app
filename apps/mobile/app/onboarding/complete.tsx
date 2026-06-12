@@ -30,6 +30,7 @@ export default function OnboardingComplete() {
   const creditors = useAppStore((s) => s.creditors);
   const profile = useAppStore((s) => s.profile);
   const onboardingReadyForAuth = useAppStore((s) => s.onboardingReadyForAuth);
+  const draftOwnerId = useAppStore((s) => s.draftOwnerId);
   const clearDraft = useAppStore((s) => s.clearDraft);
   const setTutorialStatus = useAppStore((s) => s.setTutorialStatus);
   const createCreditor = useCreateCreditor();
@@ -74,16 +75,21 @@ export default function OnboardingComplete() {
       return;
     }
     // This screen summarizes a finished onboarding draft. If the user reached it
-    // without completing onboarding (e.g. a direct sign-up), send them through
-    // the flow instead of showing an empty/stale "Your Program Is Ready".
-    if (!onboardingReadyForAuth || creditors.length === 0) {
+    // without completing onboarding (e.g. a direct sign-up), with an empty draft,
+    // or with a draft owned by a different/previous account on this device, send
+    // them through the flow instead of showing a stale "Your Program Is Ready".
+    if (
+      !onboardingReadyForAuth ||
+      creditors.length === 0 ||
+      draftOwnerId !== session.user.id
+    ) {
       router.replace("/onboarding");
       return;
     }
     // M5: "Your Program Is Ready" — the aha moment. Full celebration with the
     // warm pride voice (its own success haptic), once per user.
     celebrate("m5_first_plan", { once: true });
-  }, [session, onboardingReadyForAuth, creditors.length]);
+  }, [session, onboardingReadyForAuth, draftOwnerId, creditors.length]);
 
   const handleStart = async () => {
     if (!session) {
