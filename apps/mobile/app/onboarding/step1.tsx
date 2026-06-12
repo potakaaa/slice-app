@@ -28,10 +28,6 @@ import {
 
 const SETTLEMENT_OPTIONS = [0.3, 0.4, 0.5, 0.6, 0.7];
 
-/** Horizon used to suggest an "approximate" monthly savings rate before the
- *  user commits to their own number. ~2 years is a typical settlement program. */
-const SUGGESTED_HORIZON_MONTHS = 24;
-
 /** Months → "1 yr 2 mo" / "8 mo" so a count reads as a plan, not a raw number. */
 function formatMonths(months: number): string {
   if (months < 1) return "under a month";
@@ -53,27 +49,23 @@ export default function OnboardingStep1() {
   const [monthlySavings, setMonthlySavings] = useState(
     formatMoneyInput(profile.defaultMonthlySavings)
   );
-  const [savedSoFar, setSavedSoFar] = useState(
-    formatMoneyInput(profile.currentSavedCash)
-  );
   const [settlementPct, setSettlementPct] = useState(
     profile.defaultSettlementPercentage
   );
   const topPad = Platform.OS === "web" ? 67 : 0;
 
   const debtAmount = parseMoneyInput(totalDebt);
+  // Gross "needed to settle": the full settlement target on the total debt.
   const settlementTarget = debtAmount * settlementPct;
-  const savedAmount = parseMoneyInput(savedSoFar);
   const monthlySavingsAmount = parseMoneyInput(monthlySavings);
-  // Still to save after crediting what they've already put aside.
-  const remainingNeeded = Math.max(0, settlementTarget - savedAmount);
-  // Approximate monthly savings (automated): what it takes to finish in ~2 yrs.
-  const suggestedMonthlySavings =
-    remainingNeeded > 0
-      ? Math.ceil(remainingNeeded / SUGGESTED_HORIZON_MONTHS)
-      : 0;
-  // Approximate program length (automated): months at their chosen savings rate.
-  const programMonths = calcProgramLength(remainingNeeded, monthlySavingsAmount);
+  // Program length (automated): months to fund the target at their savings rate.
+  const programMonths = calcProgramLength(settlementTarget, monthlySavingsAmount);
+  const targetDateLabel =
+    monthlySavingsAmount > 0 && programMonths > 0
+      ? calcTargetDate(programMonths)
+      : "";
+  // Total debt savings (automated): what they keep vs. paying the full balance.
+  const totalSaved = Math.max(0, debtAmount - settlementTarget);
 
   const canContinue =
     name.trim().length > 0 && debtAmount > 0 && monthlySavingsAmount > 0;
@@ -83,7 +75,6 @@ export default function OnboardingStep1() {
       name: name.trim(),
       estimatedTotalDebt: debtAmount,
       defaultMonthlySavings: parseMoneyInput(monthlySavings),
-      currentSavedCash: parseMoneyInput(savedSoFar),
       defaultSettlementPercentage: settlementPct,
     });
     // M2: settlement fund set up — a light, encouraging nudge (first time only).
@@ -129,7 +120,7 @@ export default function OnboardingStep1() {
             Tell us about yourself
           </Text>
           <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>
-            Step 1 of 3 — Your debt and savings ability
+            Step 1 of 3 — Build your custom debt program
           </Text>
 
           <View style={styles.form}>
@@ -168,7 +159,31 @@ export default function OnboardingStep1() {
 
             <View style={styles.field}>
               <Text style={[styles.label, { color: colors.foreground }]}>
-                Monthly Savings Amount
+                Desired Settlement Target
+              </Text>
+              <Text style={[styles.hint, { color: colors.mutedForeground }]}>
+                What percentage of each debt do you aim to settle for?
+              </Text>
+              <SegmentedPercent
+                options={SETTLEMENT_OPTIONS}
+                value={settlementPct}
+                onChange={setSettlementPct}
+              />
+              {debtAmount > 0 && (
+                <View style={[styles.estimate, { backgroundColor: colors.muted, borderColor: colors.border }]}>
+                  <Text style={[styles.estimateLabel, { color: colors.mutedForeground }]}>
+                    Amount needed to settle
+                  </Text>
+                  <Text style={[styles.estimateValue, { color: colors.primary }]}>
+                    {formatCurrency(settlementTarget)}
+                  </Text>
+                </View>
+              )}
+            </View>
+
+            <View style={styles.field}>
+              <Text style={[styles.label, { color: colors.foreground }]}>
+                Monthly Saving Commitment
               </Text>
               <Text style={[styles.hint, { color: colors.mutedForeground }]}>
                 How much can you save per month toward debt settlement?
@@ -189,96 +204,47 @@ export default function OnboardingStep1() {
               </View>
             </View>
 
-            <View style={styles.field}>
-              <Text style={[styles.label, { color: colors.foreground }]}>
-                How much have you saved so far?
-              </Text>
-              <Text style={[styles.hint, { color: colors.mutedForeground }]}>
-                This is your starting settlement fund. $0 is fine — you can add to it anytime.
-              </Text>
-              <View style={[styles.dollarInput, { borderColor: colors.border, backgroundColor: colors.card }]}>
-                <Text style={[styles.dollar, { color: colors.mutedForeground }]}>$</Text>
-                <TextInput
-                  value={savedSoFar}
-                  onChangeText={(value) => setSavedSoFar(formatMoneyInput(value))}
-                  keyboardType="numeric"
-                  placeholder="0"
-                  placeholderTextColor={colors.mutedForeground}
-                  style={[styles.dollarTextInput, { color: colors.foreground }]}
-                />
-              </View>
-            </View>
-
-            <View style={styles.field}>
-              <Text style={[styles.label, { color: colors.foreground }]}>
-                Desired Settlement Target
-              </Text>
-              <Text style={[styles.hint, { color: colors.mutedForeground }]}>
-                What percentage of each debt do you aim to settle for?
-              </Text>
-              <SegmentedPercent
-                options={SETTLEMENT_OPTIONS}
-                value={settlementPct}
-                onChange={setSettlementPct}
-              />
-              {debtAmount > 0 && (
-                <View style={[styles.estimate, { backgroundColor: colors.muted, borderColor: colors.border }]}>
-                  <Text style={[styles.estimateLabel, { color: colors.mutedForeground }]}>
-                    Estimated amount needed to settle
-                  </Text>
-                  <Text style={[styles.estimateValue, { color: colors.primary }]}>
-                    {formatCurrency(settlementTarget)}
-                  </Text>
-
-                  <View style={[styles.estimateDivider, { backgroundColor: colors.border }]} />
-                  <View style={styles.planRow}>
-                    <Text style={[styles.planLabel, { color: colors.mutedForeground }]}>
-                      Total amount saved
-                    </Text>
-                    <Text style={[styles.planValue, { color: colors.success }]}>
-                      {formatCurrency(debtAmount - settlementTarget)}
-                    </Text>
-                  </View>
-                  <Text style={[styles.estimateSub, { color: colors.mutedForeground }]}>
-                    vs. paying the full {formatCurrency(debtAmount)}.
-                  </Text>
-
-                  {remainingNeeded > 0 && (
-                    <>
-                      <View style={[styles.estimateDivider, { backgroundColor: colors.border }]} />
-                      <View style={styles.planRow}>
-                        <Text style={[styles.planLabel, { color: colors.mutedForeground }]}>
-                          Suggested monthly savings
+            {debtAmount > 0 && (
+              <View style={[styles.estimate, { backgroundColor: colors.muted, borderColor: colors.border }]}>
+                {monthlySavingsAmount > 0 && programMonths > 0 && (
+                  <>
+                    <View style={styles.timelineRow}>
+                      <View style={styles.timelineMetric}>
+                        <Text style={[styles.timelineLabel, { color: colors.mutedForeground }]}>
+                          Length
                         </Text>
-                        <Text style={[styles.planValue, { color: colors.foreground }]}>
-                          ~{formatCurrency(suggestedMonthlySavings)}/mo
+                        <Text style={[styles.timelineValue, { color: colors.foreground }]}>
+                          {formatMonths(programMonths)}
                         </Text>
                       </View>
-                      <Text style={[styles.estimateSub, { color: colors.mutedForeground }]}>
-                        To reach your target in about {formatMonths(SUGGESTED_HORIZON_MONTHS)}.
-                      </Text>
+                      <View style={[styles.timelineDivider, { backgroundColor: colors.border }]} />
+                      <View style={styles.timelineMetric}>
+                        <Text style={[styles.timelineLabel, { color: colors.mutedForeground }]}>
+                          Finish
+                        </Text>
+                        <Text style={[styles.timelineValue, { color: colors.primary }]}>
+                          {targetDateLabel}
+                        </Text>
+                      </View>
+                    </View>
+                    <Text style={[styles.timelineNote, { color: colors.mutedForeground }]}>
+                      Estimated at {formatCurrency(monthlySavingsAmount)}/month
+                    </Text>
+                    <View style={[styles.estimateDivider, { backgroundColor: colors.border }]} />
+                  </>
+                )}
 
-                      {monthlySavingsAmount > 0 && programMonths > 0 && (
-                        <>
-                          <View style={[styles.estimateDivider, { backgroundColor: colors.border }]} />
-                          <View style={styles.planRow}>
-                            <Text style={[styles.planLabel, { color: colors.mutedForeground }]}>
-                              At {formatCurrency(monthlySavingsAmount)}/mo, you'll be ready in
-                            </Text>
-                            <Text style={[styles.planValue, { color: colors.foreground }]}>
-                              {formatMonths(programMonths)}
-                            </Text>
-                          </View>
-                          <Text style={[styles.estimateSub, { color: colors.mutedForeground }]}>
-                            Around {calcTargetDate(programMonths)}.
-                          </Text>
-                        </>
-                      )}
-                    </>
-                  )}
-                </View>
-              )}
-            </View>
+                <Text style={[styles.estimateLabel, { color: colors.mutedForeground }]}>
+                  Total debt savings
+                </Text>
+                <Text style={[styles.heroValue, { color: colors.success }]}>
+                  {formatCurrency(totalSaved)}
+                </Text>
+                <Text style={[styles.estimateSub, { color: colors.mutedForeground }]}>
+                  SAVED vs. paying the full {formatCurrency(debtAmount)}.
+                </Text>
+              </View>
+            )}
           </View>
         </ScrollView>
 
@@ -348,16 +314,22 @@ const styles = StyleSheet.create({
   },
   estimateLabel: { fontSize: 12, fontFamily: "Inter_500Medium" },
   estimateValue: { fontSize: 22, fontFamily: "Inter_700Bold" },
+  heroValue: { fontSize: 30, fontFamily: "Inter_700Bold", letterSpacing: -0.5 },
   estimateSub: { fontSize: 12, fontFamily: "Inter_400Regular" },
   estimateDivider: { height: 1, marginVertical: 8 },
-  planRow: {
+  timelineRow: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    gap: 8,
+    paddingVertical: 2,
   },
-  planLabel: { flex: 1, fontSize: 12, fontFamily: "Inter_400Regular" },
-  planValue: { fontSize: 15, fontFamily: "Inter_700Bold" },
+  timelineMetric: {
+    flex: 1,
+    gap: 1,
+  },
+  timelineLabel: { fontSize: 12, fontFamily: "Inter_500Medium" },
+  timelineValue: { fontSize: 18, fontFamily: "Inter_700Bold", letterSpacing: -0.2 },
+  timelineDivider: { width: 1, height: 34, marginHorizontal: 14 },
+  timelineNote: { fontSize: 11, fontFamily: "Inter_400Regular", marginTop: 3 },
   footer: {
     padding: 20,
     paddingTop: 12,

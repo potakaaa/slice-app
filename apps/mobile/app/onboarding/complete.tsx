@@ -1,9 +1,10 @@
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Alert,
   Platform,
+  Pressable,
   SafeAreaView,
   ScrollView,
   StyleSheet,
@@ -40,33 +41,44 @@ export default function OnboardingComplete() {
   const totalTarget = getTotalSettlementTarget(creditors);
   const savings = totalDebt - totalTarget;
 
-  // New onboarding: step 3 captures a real monthly budget. The surplus
-  // (income − expenses) is the most honest "what I can put toward debt each
-  // month", so it now drives the timeline and readiness. Fall back to the
-  // step-1 savings figure when no budget was entered.
   const totalExpenses = profile.monthlyExpenses.reduce(
     (sum, e) => sum + e.amount,
     0
   );
   const surplus = profile.monthlyIncome - totalExpenses;
   const hasBudget = profile.monthlyIncome > 0;
-  const monthlyContribution =
-    hasBudget && surplus > 0 ? surplus : profile.defaultMonthlySavings;
+  const committedContribution = Math.max(0, profile.defaultMonthlySavings);
+  const availableCashFlow = Math.max(0, surplus);
+  const [monthlyContribution, setMonthlyContribution] = useState(
+    committedContribution
+  );
+  const canIncreaseContribution =
+    availableCashFlow > committedContribution &&
+    monthlyContribution < availableCashFlow;
 
   const remainingTarget = Math.max(0, totalTarget - profile.currentSavedCash);
+  const committedMonths =
+    committedContribution > 0
+      ? Math.ceil(remainingTarget / committedContribution)
+      : getMaxProgramLength(creditors);
   const months =
     monthlyContribution > 0
       ? Math.ceil(remainingTarget / monthlyContribution)
       : getMaxProgramLength(creditors);
+  const fasterMonths =
+    availableCashFlow > 0
+      ? Math.ceil(remainingTarget / availableCashFlow)
+      : months;
+  const monthsSaved = Math.max(0, committedMonths - fasterMonths);
   const readiness = calcSettlementReadiness(
     creditors,
     profile.currentSavedCash,
     monthlyContribution
   );
   const readinessText = readiness.isReadyNow
-    ? "You may be settlement-ready now — enough saved to make your first offer."
+    ? "Settlement-ready now"
     : readiness.daysUntilReady != null
-      ? `You may be settlement-ready in ${readiness.daysUntilReady} days — save about ${formatCurrency(readiness.dailySetAside)}/day.`
+      ? `First offer in about ${readiness.daysUntilReady} days • ${formatCurrency(readiness.dailySetAside)}/day`
       : null;
 
   useEffect(() => {
@@ -99,6 +111,7 @@ export default function OnboardingComplete() {
     try {
       await upsertProfile.mutateAsync({
         ...profile,
+        defaultMonthlySavings: monthlyContribution,
         onboardingComplete: true,
         termsAccepted: true,
         privacyAccepted: true,
@@ -109,7 +122,7 @@ export default function OnboardingComplete() {
           phone: creditor.phone,
           balance: creditor.balance,
           settlementPercentage: creditor.settlementPercentage,
-          monthlySavings: creditor.monthlySavings,
+          monthlySavings: monthlyContribution,
           priority: index + 1,
         });
       }
@@ -148,12 +161,12 @@ export default function OnboardingComplete() {
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.top}>
-            <SliceLogo size={80} />
+            <SliceLogo size={64} />
             <Text style={styles.congrats}>Your Program Is Ready!</Text>
             <Text style={styles.name}>
               {profile.name
-                ? `Great work, ${profile.name.split(" ")[0].charAt(0).toUpperCase() + profile.name.split(" ")[0].slice(1)}!`
-                : "Great work!"}
+                ? `Review your plan, ${profile.name.split(" ")[0].charAt(0).toUpperCase() + profile.name.split(" ")[0].slice(1)}.`
+                : "Review your plan."}
             </Text>
           </View>
 
@@ -162,83 +175,135 @@ export default function OnboardingComplete() {
               <Text style={styles.statValue}>{formatCurrency(totalDebt)}</Text>
               <Text style={styles.statLabel}>Total Debt</Text>
             </View>
-            <View style={styles.divider} />
+            <View style={styles.statDivider} />
             <View style={styles.statCard}>
               <Text style={styles.statValue}>{formatCurrency(totalTarget)}</Text>
               <Text style={styles.statLabel}>Settlement Target</Text>
             </View>
-            <View style={styles.divider} />
+            <View style={styles.statDivider} />
             <View style={styles.statCard}>
-              <Text style={[styles.statValue, styles.savingsValue]}>
-                {formatCurrency(savings)}
-              </Text>
+              <Text style={styles.statValue}>{formatCurrency(savings)}</Text>
               <Text style={styles.statLabel}>Potential Savings</Text>
             </View>
           </View>
 
-          {hasBudget && (
-            <View style={styles.budget}>
-              <View style={styles.budgetCol}>
-                <Text style={styles.budgetLabel}>Income</Text>
-                <Text style={styles.budgetValue}>
-                  {formatCurrency(profile.monthlyIncome)}
+          <View style={styles.plan}>
+            {hasBudget && (
+              <View style={styles.budget}>
+                <View style={styles.budgetCol}>
+                  <Text style={styles.budgetLabel}>Income</Text>
+                  <Text style={styles.budgetValue}>
+                    {formatCurrency(profile.monthlyIncome)}
+                  </Text>
+                </View>
+                <View style={styles.budgetSep} />
+                <View style={styles.budgetCol}>
+                  <Text style={styles.budgetLabel}>Expenses</Text>
+                  <Text style={styles.budgetValue}>
+                    −{formatCurrency(totalExpenses)}
+                  </Text>
+                </View>
+                <View style={styles.budgetSep} />
+                <View style={styles.budgetCol}>
+                  <Text style={styles.budgetLabel}>
+                    {surplus < 0 ? "Shortfall" : "Available"}
+                  </Text>
+                  <Text style={styles.budgetValue}>
+                    {surplus < 0 ? "−" : ""}
+                    {formatCurrency(Math.abs(surplus))}
+                    <Text style={styles.perMonth}>/mo</Text>
+                  </Text>
+                </View>
+              </View>
+            )}
+
+            {hasBudget && <View style={styles.divider} />}
+
+            <View style={styles.planMetrics}>
+              <View style={styles.planMetric}>
+                <Text style={styles.planLabel}>Monthly commitment</Text>
+                <Text style={styles.planValue}>
+                  {formatCurrency(monthlyContribution)}
+                  <Text style={styles.perMonth}>/mo</Text>
                 </Text>
               </View>
-              <View style={styles.budgetSep} />
-              <View style={styles.budgetCol}>
-                <Text style={styles.budgetLabel}>Expenses</Text>
-                <Text style={styles.budgetValue}>
-                  −{formatCurrency(totalExpenses)}
-                </Text>
-              </View>
-              <View style={styles.budgetSep} />
-              <View style={styles.budgetCol}>
-                <Text style={styles.budgetLabel}>
-                  {surplus < 0 ? "Shortfall" : "For debt"}
-                </Text>
-                <Text style={styles.budgetValueAccent}>
-                  {surplus < 0 ? "−" : ""}
-                  {formatCurrency(Math.abs(surplus))}
-                  <Text style={styles.budgetPerMo}>/mo</Text>
+              <View style={styles.planMetricDivider} />
+              <View style={styles.planMetric}>
+                <Text style={styles.planLabel}>Estimated length</Text>
+                <Text style={styles.planValue}>
+                  {months} {months === 1 ? "month" : "months"}
                 </Text>
               </View>
             </View>
-          )}
 
-          {months > 0 && (
-            <View style={styles.timeline}>
-              <Text style={styles.timelineText}>
-                Estimated program length:
-              </Text>
-              <Text style={styles.timelineMonths}>
-                {months} {months === 1 ? "month" : "months"}
-              </Text>
-              {monthlyContribution > 0 && (
-                <Text style={styles.timelineCaption}>
-                  Saving {formatCurrency(monthlyContribution)}/mo
-                  {hasBudget && surplus > 0 ? " from your budget" : ""}
-                </Text>
+            {hasBudget &&
+              remainingTarget > 0 &&
+              availableCashFlow > committedContribution && (
+                <>
+                  <View style={styles.divider} />
+                  <View style={styles.fasterRow}>
+                    <View style={styles.fasterCopy}>
+                      <Text style={styles.fasterEyebrow}>
+                        {canIncreaseContribution
+                          ? "FASTER OPTION"
+                          : "FASTER PLAN SELECTED"}
+                      </Text>
+                      <Text style={styles.fasterTitle}>
+                        {canIncreaseContribution
+                          ? `Use ${formatCurrency(availableCashFlow)}/mo instead`
+                          : "Faster plan selected"}
+                      </Text>
+                      <Text style={styles.fasterBody}>
+                        {canIncreaseContribution
+                          ? monthsSaved > 0
+                            ? `About ${monthsSaved} ${monthsSaved === 1 ? "month" : "months"} sooner • keep room for irregular expenses`
+                            : "Build your fund faster • keep room for irregular expenses"
+                          : `${fasterMonths} ${fasterMonths === 1 ? "month" : "months"} estimated • original was ${formatCurrency(committedContribution)}/mo`}
+                      </Text>
+                    </View>
+                    <Pressable
+                      onPress={() =>
+                        setMonthlyContribution(
+                          canIncreaseContribution
+                            ? availableCashFlow
+                            : committedContribution
+                        )
+                      }
+                      style={({ pressed }) => [
+                        styles.fasterAction,
+                        pressed && styles.fasterActionPressed,
+                      ]}
+                      accessibilityRole="button"
+                      accessibilityLabel={
+                        canIncreaseContribution
+                          ? `Use ${formatCurrency(availableCashFlow)} per month`
+                          : `Restore ${formatCurrency(committedContribution)} per month`
+                      }
+                    >
+                      <Text style={styles.fasterActionText}>
+                        {canIncreaseContribution ? "Use it" : "Undo"}
+                      </Text>
+                    </Pressable>
+                  </View>
+                </>
               )}
-            </View>
-          )}
 
-          {readinessText && (
-            <View style={styles.readiness}>
-              <Text style={styles.readinessText}>{readinessText}</Text>
-            </View>
-          )}
+            {readinessText && (
+              <>
+                <View style={styles.divider} />
+                <View style={styles.readinessRow}>
+                  <Text style={styles.readinessCheck}>✓</Text>
+                  <Text style={styles.readinessText}>{readinessText}</Text>
+                </View>
+              </>
+            )}
+          </View>
 
-          <View style={styles.bullets}>
-            {[
-              "Your creditors are sorted by snowball priority",
-              "AI negotiation strategies are ready for each creditor",
-              "Track savings progress on your dashboard",
-            ].map((item, i) => (
-              <View key={i} style={styles.bullet}>
-                <Text style={styles.bulletDot}>✓</Text>
-                <Text style={styles.bulletText}>{item}</Text>
-              </View>
-            ))}
+          <View style={styles.readyLine}>
+            <Text style={styles.readyDot}>✓</Text>
+            <Text style={styles.readyText}>
+              Creditor order, negotiation strategies, and tracking are ready.
+            </Text>
           </View>
 
           <View style={styles.bottom}>
@@ -251,7 +316,7 @@ export default function OnboardingComplete() {
               fullWidth
             />
             <Text style={styles.disclaimer}>
-              Results are estimates. SLICE does not guarantee settlement outcomes.
+              Estimates only. Settlement outcomes are not guaranteed.
             </Text>
           </View>
         </ScrollView>
@@ -266,11 +331,11 @@ const styles = StyleSheet.create({
   content: {
     flexGrow: 1,
     paddingHorizontal: 24,
-    paddingTop: 28,
-    paddingBottom: Platform.OS === "web" ? 40 : 28,
-    gap: 24,
+    paddingTop: 20,
+    paddingBottom: Platform.OS === "web" ? 34 : 24,
+    gap: 16,
   },
-  top: { alignItems: "center", gap: 14 },
+  top: { alignItems: "center", gap: 7 },
   congrats: {
     fontSize: 28,
     fontFamily: "Inter_700Bold",
@@ -281,133 +346,196 @@ const styles = StyleSheet.create({
   name: {
     fontSize: 16,
     fontFamily: "Inter_600SemiBold",
-    color: "#FFFFFF",
-    lineHeight: 24,
+    color: "rgba(255,255,255,0.9)",
+    lineHeight: 23,
     textAlign: "center",
   },
   stats: {
-    gap: 0,
+    flexDirection: "row",
+    alignItems: "stretch",
     backgroundColor: "rgba(255,255,255,0.15)",
     borderRadius: 16,
-    paddingHorizontal: 20,
-    paddingVertical: 8,
+    paddingVertical: 16,
   },
   statCard: {
-    minHeight: 64,
-    flexDirection: "row",
+    flex: 1,
     alignItems: "center",
-    justifyContent: "space-between",
-    gap: 16,
+    justifyContent: "center",
+    gap: 5,
+    paddingHorizontal: 6,
   },
   statValue: {
-    fontSize: 18,
+    fontSize: 19,
     fontFamily: "Inter_700Bold",
     color: "#FFFFFF",
   },
-  savingsValue: { color: "#FFFFFF" },
   statLabel: {
     fontSize: 11,
-    color: "#FFFFFF",
+    color: "rgba(255,255,255,0.88)",
     fontFamily: "Inter_600SemiBold",
-    textAlign: "right",
+    textAlign: "center",
+    lineHeight: 15,
+  },
+  statDivider: {
+    width: 1,
+    alignSelf: "stretch",
+    backgroundColor: "rgba(255,255,255,0.24)",
+  },
+  plan: {
+    backgroundColor: "rgba(255,255,255,0.15)",
+    borderRadius: 16,
+    padding: 18,
+    gap: 14,
   },
   divider: {
-    width: "100%",
     height: 1,
-    backgroundColor: "rgba(255,255,255,0.3)",
+    backgroundColor: "rgba(255,255,255,0.22)",
   },
   budget: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(255,255,255,0.15)",
-    borderRadius: 14,
-    paddingVertical: 14,
-    paddingHorizontal: 8,
   },
-  budgetCol: { flex: 1, alignItems: "center", gap: 3 },
+  budgetCol: { flex: 1, alignItems: "center", gap: 2 },
   budgetSep: {
     width: 1,
     alignSelf: "stretch",
-    marginVertical: 2,
-    backgroundColor: "rgba(255,255,255,0.25)",
+    backgroundColor: "rgba(255,255,255,0.2)",
   },
   budgetLabel: {
-    color: "rgba(255,255,255,0.85)",
+    color: "rgba(255,255,255,0.82)",
     fontSize: 11,
     fontFamily: "Inter_600SemiBold",
+    textAlign: "center",
   },
   budgetValue: {
     color: "#FFFFFF",
-    fontSize: 15,
-    fontFamily: "Inter_700Bold",
-  },
-  budgetValueAccent: {
-    color: "#FFFFFF",
     fontSize: 17,
     fontFamily: "Inter_700Bold",
+    textAlign: "center",
   },
-  budgetPerMo: {
+  perMonth: {
     fontSize: 11,
     fontFamily: "Inter_600SemiBold",
-    color: "rgba(255,255,255,0.85)",
+    color: "rgba(255,255,255,0.82)",
   },
-  timeline: {
-    alignItems: "center",
-    backgroundColor: "rgba(255,255,255,0.15)",
-    borderRadius: 12,
-    padding: 20,
+  planMetrics: {
+    flexDirection: "row",
+    alignItems: "stretch",
+  },
+  planMetric: {
+    flex: 1,
     gap: 4,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 6,
   },
-  timelineText: {
-    color: "#FFFFFF",
-    fontSize: 13,
+  planMetricDivider: {
+    width: 1,
+    alignSelf: "stretch",
+    backgroundColor: "rgba(255,255,255,0.2)",
+  },
+  planLabel: {
+    color: "rgba(255,255,255,0.82)",
+    fontSize: 12,
     fontFamily: "Inter_600SemiBold",
+    textAlign: "center",
+  },
+  planValue: {
+    color: "#FFFFFF",
+    fontSize: 24,
+    fontFamily: "Inter_700Bold",
+    textAlign: "center",
+  },
+  fasterRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    backgroundColor: "rgba(255,255,255,0.08)",
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingLeft: 14,
+    paddingRight: 10,
+  },
+  fasterCopy: { flex: 1, gap: 3 },
+  fasterEyebrow: {
+    color: "rgba(255,255,255,0.7)",
+    fontSize: 9,
+    fontFamily: "Inter_700Bold",
+    letterSpacing: 0.8,
+  },
+  fasterTitle: {
+    color: "#FFFFFF",
+    fontSize: 15,
+    fontFamily: "Inter_700Bold",
     lineHeight: 20,
   },
-  timelineMonths: {
+  fasterBody: {
+    color: "rgba(255,255,255,0.82)",
+    fontSize: 12,
+    fontFamily: "Inter_500Medium",
+    lineHeight: 17,
+  },
+  fasterAction: {
+    minWidth: 68,
+    minHeight: 48,
+    paddingHorizontal: 15,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 24,
+    backgroundColor: "rgba(255,255,255,0.2)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.35)",
+  },
+  fasterActionPressed: { opacity: 0.65 },
+  fasterActionText: {
     color: "#FFFFFF",
-    fontSize: 32,
+    fontSize: 13,
     fontFamily: "Inter_700Bold",
   },
-  timelineCaption: {
-    color: "rgba(255,255,255,0.85)",
-    fontSize: 13,
-    fontFamily: "Inter_600SemiBold",
-    marginTop: 2,
+  readinessRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
   },
-  readiness: {
-    backgroundColor: "rgba(255,255,255,0.15)",
-    borderRadius: 12,
-    paddingHorizontal: 18,
-    paddingVertical: 16,
+  readinessCheck: {
+    color: "#FFFFFF",
+    fontSize: 14,
+    fontFamily: "Inter_700Bold",
   },
   readinessText: {
     color: "#FFFFFF",
-    fontSize: 15,
+    fontSize: 14,
     fontFamily: "Inter_700Bold",
-    lineHeight: 22,
+    lineHeight: 21,
     textAlign: "center",
   },
-  bullets: { gap: 14, paddingHorizontal: 2 },
-  bullet: { flexDirection: "row", gap: 12, alignItems: "flex-start" },
-  bulletDot: {
-    color: "#FFFFFF",
-    fontSize: 15,
-    fontFamily: "Inter_700Bold",
-    lineHeight: 22,
+  readyLine: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 2,
   },
-  bulletText: {
+  readyDot: {
     color: "#FFFFFF",
     fontSize: 14,
-    fontFamily: "Inter_600SemiBold",
-    flex: 1,
-    lineHeight: 23,
+    fontFamily: "Inter_700Bold",
   },
-  bottom: { gap: 12, marginTop: "auto", paddingTop: 4 },
+  readyText: {
+    color: "rgba(255,255,255,0.9)",
+    fontSize: 13,
+    fontFamily: "Inter_600SemiBold",
+    lineHeight: 19,
+    textAlign: "center",
+    flexShrink: 1,
+  },
+  bottom: { gap: 10, marginTop: 4, paddingTop: 2 },
   cta: { backgroundColor: "#FFFFFF" },
   disclaimer: {
     textAlign: "center",
-    color: "#FFFFFF",
+    color: "rgba(255,255,255,0.84)",
     fontSize: 11,
     fontFamily: "Inter_600SemiBold",
     lineHeight: 17,
